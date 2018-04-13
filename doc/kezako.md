@@ -47,6 +47,6 @@ Activitypub semble être le protocole le plus approprié pour gérer les différ
 Pour avoir une idée un peu plus précise lisez l'intro! [https://www.w3.org/TR/2018/REC-activitypub-20180123/](https://www.w3.org/TR/2018/REC-activitypub-20180123/)  
   
  
-#### Stockage  
+### Stockage  
 Chaque noeud servira de stockage partagé via IPFS aux noeuds appartenant à la même fédération (ou aux mêmes).  
 Autrement dit quand on consultera une photo sur le noeud X elle sera chargée depuis une noeud appartenant à la même fédération. Il faudra donc prévoir un bidule qui répartit les requêtes et qui tient compte de la BP dispo sur chaque noeud (on peut aussi imaginer de servir le client depuis le noeud le plus proche.. mais bon ce n'est pas le sujet pour le moment)

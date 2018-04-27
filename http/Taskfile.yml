@@ -16,3 +16,8 @@ tasks:
     deps: [build]
     cmds:
       - rsync -arv ../dist/ peerpx@peerpx.com:/home/peerpx/
+
+
+  test:
+    cmds:
+      - go test ./...

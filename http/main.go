@@ -1,16 +1,20 @@
 package main
 
 import (
-	"log"
-	"net/http"
+	"os"
+
+	"path"
 
 	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/labstack/echo"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/toorop/peerpx/core/models"
+	"github.com/toorop/peerpx/http/controllers"
+	"github.com/toorop/peerpx/http/middlewares"
 )
 
 func main() {
@@ -25,6 +29,21 @@ func main() {
 		log.Fatalf("unable to read config: %v ", err)
 	}
 
+	// init logger props
+	// todo set formatter
+	log.SetFormatter(&log.TextFormatter{})
+	logDir := viper.GetString("log.dir")
+	if logDir != "" {
+		fd, err := os.OpenFile(path.Join(logDir, "peerpx.log"), os.O_WRONLY|os.O_CREATE, 0755)
+		if err != nil {
+			log.Fatalf("unable to open log file: %v", err)
+		}
+		defer fd.Close()
+		log.SetOutput(fd)
+	} else {
+		log.SetOutput(os.Stdout)
+	}
+
 	// init DB
 	db, err := gorm.Open("sqlite3", "peerpx.db")
 	if err != nil {
@@ -37,16 +56,28 @@ func main() {
 		log.Fatalf("unable to migrate DB: %v", err)
 	}
 
-	// init app logger TODO
-
 	// init Echo
 
 	e := echo.New()
 
 	// routes
-	e.GET("/", func(c echo.Context) error {
-		log.Println("toto")
-		return c.String(http.StatusOK, "Hello, World!")
-	})
-	e.Logger.Fatal(e.Start(":8080"))
+
+	// photo
+
+	// upload
+	e.POST("/api/v1/photo", controllers.Todo, middlewares.AuthRequired())
+
+	// get photo
+	e.GET("/api/v1/photo/:id", controllers.Todo, middlewares.AuthRequired())
+
+	// update photo properties
+	e.PUT("/api/v1/photo/:id", controllers.Todo, middlewares.AuthRequired())
+
+	// delete photo
+	e.DELETE("/api/v1/photo/:id", controllers.Todo, middlewares.AuthRequired())
+
+	// search
+	e.GET("/api/v1/photo/search", controllers.PhotoSearch, middlewares.AuthRequired())
+
+	log.Fatal(e.Start(":8080"))
 }

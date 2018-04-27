@@ -1,0 +1,18 @@
+
+version: '2'
+
+tasks:
+  build:
+    cmds:
+      - go build -o ../dist/server
+
+  run:
+    deps: [build]
+    dir: ../dist
+    cmds:
+      - ./server
+
+  deploy:
+    deps: [build]
+    cmds:
+      - rsync -arv ../dist/ peerpx@peerpx.com:/home/peerpx/

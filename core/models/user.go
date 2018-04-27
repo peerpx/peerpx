@@ -5,11 +5,11 @@ import "github.com/jinzhu/gorm"
 // User represent an user
 type User struct {
 	gorm.Model
-	Username  string
+	Username  string `gorm:"type:varchar(255);unique_index"`
 	Firstname string
 	Lastname  string
-	Sex       Sex
-	Email     string
+	Gender    Gender
+	Email     string `gorm:"unique_index"`
 	Address   string
 	City      string
 	State     string
@@ -21,13 +21,17 @@ type User struct {
 	UserURL   string
 	Admin     bool
 	Avatars   []Image
+	APIKey    string // temp
 }
 
-// Sex is the user sex
-type Sex uint8
+// Gender is the user gender
+type Gender uint8
 
 const (
-	Undefined Sex = iota
+	// Undefined ?
+	Undefined Gender = iota
+	// Male male
 	Male
+	// Female female
 	Female
 )

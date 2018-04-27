@@ -9,7 +9,7 @@ import (
 // Photo represents a Photo
 type Photo struct {
 	gorm.Model
-	IPFSHash     string
+	Hash         string `gorm:"type:varchar(100);unique_index"` // sha256 + base58 ?
 	Name         string
 	Description  string
 	camera       string
@@ -31,10 +31,10 @@ type Photo struct {
 	Nsfw         bool
 	LicenceType  Licence
 	URL          string
-	Images       []Image
+	Images       []Image `gorm:"-"`
 	User         User
-	Comments     []Comment
-	Tags         []Tag
+	Comments     []Comment `gorm:"-"`
+	Tags         []Tag     `gorm:"-"`
 }
 
 // Category temp definition

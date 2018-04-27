@@ -52,10 +52,6 @@ type Image struct {
 	URL  string
 }
 
-// User temp
-type User struct {
-}
-
 // Comment temp
 type Comment struct {
 }

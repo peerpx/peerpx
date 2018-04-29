@@ -15,5 +15,5 @@ func TestHasher(t *testing.T) {
 	}
 	hashed, err := GetHash(photoBytes)
 	assert.NoError(t, err)
-	assert.Equal(t, "EgJCfVfExg34MA8VtDjR9SmGz8pgGKZbcuBMQCFHhnc=", hashed)
+	assert.Equal(t, "2DJLYuo9ky9CfThuGK2DU82dvENtJr8BzX7kmGkoad4J", hashed)
 }

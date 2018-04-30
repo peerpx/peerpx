@@ -2,3 +2,6 @@ prod: false
 
 log:
   dir: "log"
+
+photo:
+  maxsize: 4096

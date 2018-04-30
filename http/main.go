@@ -12,6 +12,7 @@ import (
 	"github.com/labstack/echo"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"github.com/toorop/peerpx/core"
 	"github.com/toorop/peerpx/core/models"
 	"github.com/toorop/peerpx/http/controllers"
 	"github.com/toorop/peerpx/http/middlewares"
@@ -21,12 +22,8 @@ func main() {
 	var err error
 
 	// load config
-	viper.AddConfigPath(".")
-	viper.SetConfigName("config")
-	viper.SetConfigType("yaml")
-	err = viper.ReadInConfig()
-	if err != nil {
-		log.Fatalf("unable to read config: %v ", err)
+	if err = core.InitViper(); err != nil {
+		log.Fatalf("unable to iny viper: %v ", err)
 	}
 
 	// init logger props
@@ -45,6 +42,7 @@ func main() {
 	}
 
 	// init DB
+	// todo mv to core
 	db, err := gorm.Open("sqlite3", "peerpx.db")
 	if err != nil {
 		log.Fatalf("unable init DB: %v ", err)

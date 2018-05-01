@@ -5,7 +5,6 @@ import (
 
 	"path"
 
-	"github.com/jinzhu/gorm"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
@@ -16,6 +15,7 @@ import (
 	"github.com/toorop/peerpx/api/middlewares"
 	"github.com/toorop/peerpx/core"
 	"github.com/toorop/peerpx/core/models"
+	"github.com/toorop/peerpx/db"
 )
 
 func main() {
@@ -27,11 +27,12 @@ func main() {
 	}
 
 	// init logger props
-	// todo set formatter
+	// todo set formatter & config
 	log.SetFormatter(&log.TextFormatter{})
 	logDir := viper.GetString("log.dir")
 	if logDir != "" {
-		fd, err := os.OpenFile(path.Join(logDir, "peerpx.log"), os.O_WRONLY|os.O_CREATE, 0755)
+		var fd *os.File
+		fd, err = os.OpenFile(path.Join(logDir, "peerpx.log"), os.O_WRONLY|os.O_CREATE, 0755)
 		if err != nil {
 			log.Fatalf("unable to open log file: %v", err)
 		}
@@ -42,20 +43,18 @@ func main() {
 	}
 
 	// init DB
-	// todo mv to core
-	db, err := gorm.Open("sqlite3", "peerpx.db")
-	if err != nil {
+	if err = db.InitDB(); err != nil {
 		log.Fatalf("unable init DB: %v ", err)
 	}
-	defer db.Close()
+	defer db.DB.Close()
 
 	// Migrate the schema
-	if err = db.AutoMigrate(&models.User{}, &models.Photo{}).Error; err != nil {
+	// TODO add option (its useless to migrate DB @each run)
+	if err = db.DB.AutoMigrate(&models.User{}, &models.Photo{}).Error; err != nil {
 		log.Fatalf("unable to migrate DB: %v", err)
 	}
 
 	// init Echo
-
 	e := echo.New()
 
 	// routes
@@ -65,8 +64,11 @@ func main() {
 	// upload
 	e.POST("/api/v1/photo", controllers.Todo, middlewares.AuthRequired())
 
-	// get photo
-	e.GET("/api/v1/photo/:id", controllers.Todo, middlewares.AuthRequired())
+	// get photo -> RAW photo
+	e.GET("/api/v1/photo/:id:/:size", controllers.Todo, middlewares.AuthRequired())
+
+	// get photo properties -> JSON object
+	e.GET("/api/v1/photo/:id:/properties", controllers.Todo, middlewares.AuthRequired())
 
 	// update photo properties
 	e.PUT("/api/v1/photo/:id", controllers.Todo, middlewares.AuthRequired())

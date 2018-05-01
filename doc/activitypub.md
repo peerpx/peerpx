@@ -23,5 +23,3 @@ Chaque *acteur* possède une INBOX et une OUTBOX, qui sont **GET**able et **POST
     * GET - la/les entité(s) externes (serveur) récupèrent les *activité*s qui leurs sont destinées
 
 Chaque *acteur* devrait aussi avoir une collection de "followers" et de "following", et peut avoir une collection de "liked" (*objet*s aimés)
-
-## Proposition(s) d'implémentation(s)

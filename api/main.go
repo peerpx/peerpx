@@ -12,10 +12,10 @@ import (
 	"github.com/labstack/echo"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"github.com/toorop/peerpx/api/controllers"
+	"github.com/toorop/peerpx/api/middlewares"
 	"github.com/toorop/peerpx/core"
 	"github.com/toorop/peerpx/core/models"
-	"github.com/toorop/peerpx/http/controllers"
-	"github.com/toorop/peerpx/http/middlewares"
 )
 
 func main() {

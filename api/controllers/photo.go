@@ -15,7 +15,10 @@ import (
 
 	"image/jpeg"
 
+	"time"
+
 	"github.com/disintegration/gift"
+	"github.com/jinzhu/gorm"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/toorop/peerpx/core"
@@ -134,9 +137,75 @@ func PhotoPost(c echo.Context) error {
 
 }
 
-// PhotoSearch API ctrl for searching photos
-func PhotoSearch(c echo.Context) error {
-	log.Print("toto")
-	log.Error("toto")
-	return c.String(http.StatusOK, "TODO")
+// PhotoGetPropertiesResponse response for PhotoGetProperties controller
+type PhotoGetPropertiesResponse struct {
+	Hash         string
+	Name         string
+	Description  string
+	camera       string
+	Lens         string
+	FocalLength  uint16
+	Iso          uint16
+	ShutterSpeed string  // or float ? "1/250" vs 0.004
+	Aperture     float32 // 5.6, 32, 1.4
+	TimeViewed   uint64
+	Rating       float32
+	Category     models.Category
+	Location     string
+	Privacy      bool // true if private
+	Latitude     float32
+	Longitude    float32
+	TakenAt      time.Time
+	Width        uint32
+	Height       uint32
+	Nsfw         bool
+	LicenceType  models.Licence
+	URL          string
+	User         string // @user@instance
+	Tags         []models.Tag
+}
+
+// PhotoGetProperties returns PhotoProperties
+func PhotoGetProperties(c echo.Context) error {
+	// get ID -> hash
+	hash := c.Param("id")
+	// get photo
+	photo, err := models.PhotoGetByHash(hash)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound {
+			return c.NoContent(http.StatusNotFound)
+		}
+		log.Errorf("%v - controllers.PhotoGetProperties - unable to models.PhotoGetByHash(%s): %v", c.RealIP(), hash, err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+	// response
+	response := PhotoGetPropertiesResponse{
+		Hash:         hash,
+		Name:         photo.Name,
+		Description:  photo.Description,
+		camera:       photo.Camera,
+		Lens:         photo.Lens,
+		FocalLength:  photo.FocalLength,
+		Iso:          photo.Iso,
+		ShutterSpeed: photo.ShutterSpeed,
+		Aperture:     photo.Aperture,
+		TimeViewed:   photo.TimeViewed,
+		Rating:       photo.Rating,
+		Category:     photo.Category,
+		Location:     photo.Location,
+		Privacy:      photo.Privacy,
+		Latitude:     photo.Latitude,
+		Longitude:    photo.Longitude,
+		TakenAt:      photo.TakenAt,
+		Width:        photo.Width,
+		Height:       photo.Height,
+		Nsfw:         photo.Nsfw,
+		LicenceType:  photo.LicenceType,
+		URL:          photo.URL,
+		// todo: Warning fake props
+		User: "@johndoe@peerpx.com",
+		Tags: []models.Tag{"fake", "sunrise"},
+	}
+
+	return c.JSON(http.StatusOK, response)
 }

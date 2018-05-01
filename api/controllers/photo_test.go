@@ -28,16 +28,7 @@ func TestPhotoPost(t *testing.T) {
 	core.DS = core.NewDatastoreMocked()
 
 	// mocked DB
-	_, mock, err := sqlmock.NewWithDSN("sqlmock_db_0")
-	if err != nil {
-		panic("Got an unexpected error.")
-	}
-
-	core.DB, err = gorm.Open("sqlmock", "sqlmock_db_0")
-	if err != nil {
-		panic("Got an unexpected error.")
-	}
-
+	mock := core.InitMockedDB("sqlmock_db_0")
 	defer core.DB.Close()
 	mock.ExpectExec("^INSERT INTO \"photos\"(.*)").WillReturnResult(sqlmock.NewResult(1, 1))
 
@@ -81,5 +72,40 @@ func TestPhotoPostNotAPhoto(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Equal(t, uint8(1), response.Code)
 	}
+}
 
+func TestPhotoGetByHash(t *testing.T) {
+	// mocked DB
+	mock := core.InitMockedDB("sqlmock_db_1")
+	defer core.DB.Close()
+
+	e := echo.New()
+	req := httptest.NewRequest(echo.GET, "/", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.Set("id", "mocked")
+
+	// test "valid" hash
+	rows := sqlmock.NewRows([]string{"id", "name"}).AddRow(1, "mocked")
+	mock.ExpectQuery("^SELECT(.*)").WillReturnRows(rows)
+	if assert.NoError(t, PhotoGetProperties(c)) {
+		assert.Equal(t, http.StatusOK, rec.Code)
+	}
+}
+
+func TestPhotoGetByHashNotFound(t *testing.T) {
+	// mocked DB
+	mock := core.InitMockedDB("sqlmock_db_2")
+	defer core.DB.Close()
+
+	e := echo.New()
+	req := httptest.NewRequest(echo.GET, "/", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.Set("id", "mocked")
+
+	mock.ExpectQuery("^SELECT(.*)").WillReturnError(gorm.ErrRecordNotFound)
+	if assert.NoError(t, PhotoGetProperties(c)) {
+		assert.Equal(t, http.StatusNotFound, rec.Code)
+	}
 }

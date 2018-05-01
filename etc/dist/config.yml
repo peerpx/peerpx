@@ -1,7 +1,16 @@
 prod: false
 
+hostname: peerpx.com
+
 log:
   dir: "log"
 
 photo:
   maxsize: 4096
+
+datastore:
+  type: fs
+  path: "/home/toorop/Projects/Go/src/github.com/toorop/peerpx/etc/datastore"
+
+http:
+  tlsEnabled: false

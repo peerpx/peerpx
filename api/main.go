@@ -70,13 +70,20 @@ func main() {
 	// photo
 
 	// upload
-	e.POST("/api/v1/photo", controllers.Todo, middlewares.AuthRequired())
+	e.POST("/api/v1/photo", controllers.PhotoPost, middlewares.AuthRequired())
 
-	// get photo -> RAW photo
+	// get photo
+	// size:
+	// 	max 	-> uploaded photo (modulo config max size)
+	//  large	-> 2k ?
+	// 	medium  -> 1k ?
+	// 	small   -> 500
+	//  usmall  -> 200
+	//  int -> int
 	e.GET("/api/v1/photo/:id:/:size", controllers.Todo, middlewares.AuthRequired())
 
 	// get photo properties -> JSON object
-	e.GET("/api/v1/photo/:id:/properties", controllers.Todo, middlewares.AuthRequired())
+	e.GET("/api/v1/photo/:id/properties", controllers.PhotoGetProperties)
 
 	// update photo properties
 	e.PUT("/api/v1/photo/:id", controllers.Todo, middlewares.AuthRequired())
@@ -85,7 +92,7 @@ func main() {
 	e.DELETE("/api/v1/photo/:id", controllers.Todo, middlewares.AuthRequired())
 
 	// search
-	e.GET("/api/v1/photo/search", controllers.PhotoSearch, middlewares.AuthRequired())
+	e.GET("/api/v1/photo/search", controllers.Todo, middlewares.AuthRequired())
 
 	e.Logger.Fatal(e.Start(":8080"))
 }

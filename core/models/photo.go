@@ -7,13 +7,26 @@ import (
 	"github.com/toorop/peerpx/core"
 )
 
+// Category temp definition
+type Category uint8
+
+// Tag temp
+type Tag string
+
+// Licence temp
+type Licence uint8
+
+// Comment temp
+type Comment struct {
+}
+
 // Photo represents a Photo
 type Photo struct {
 	gorm.Model
 	Hash         string `gorm:"type:varchar(100);unique_index"` // sha256 + base58 ?
 	Name         string
 	Description  string
-	camera       string
+	Camera       string
 	Lens         string
 	FocalLength  uint16
 	Iso          uint16
@@ -37,17 +50,12 @@ type Photo struct {
 	Tags         []Tag     `gorm:"-"`
 }
 
-// Category temp definition
-type Category uint8
-
-// Tag temp
-type Tag string
-
-// Licence temp
-type Licence uint8
-
-// Comment temp
-type Comment struct {
+// PhotoGetByHash return photo from its hash
+func PhotoGetByHash(hash string) (photo Photo, err error) {
+	err = core.DB.Find(&photo).Where("hash = ?", hash).Error
+	// todo load user
+	// todo load tags ?
+	return
 }
 
 // Create save new photo in DB

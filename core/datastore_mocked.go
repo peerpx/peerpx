@@ -1,24 +1,24 @@
 package core
 
 // DatastoreMocked fake datastore for testing
-type DataStoreMocked struct{}
+type DatastoreMocked struct{}
 
 // NewDatastoreMocked return a fake datastore for testing puupose
 func NewDatastoreMocked() Datastore {
-	return &DataStoreMocked{}
+	return &DatastoreMocked{}
 }
 
 // Put implements datastore.Put
-func (d *DataStoreMocked) Put(key string, value []byte) error {
+func (d *DatastoreMocked) Put(key string, value []byte) error {
 	return nil
 }
 
 // Get implements datastore.Get
-func (d *DataStoreMocked) Get(key string) (data []byte, err error) {
+func (d *DatastoreMocked) Get(key string) (data []byte, err error) {
 	return
 }
 
 // Delete implements datastore.Delete
-func (d *DataStoreMocked) Delete(key string) error {
+func (d *DatastoreMocked) Delete(key string) error {
 	return nil
 }

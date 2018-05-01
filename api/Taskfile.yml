@@ -4,11 +4,11 @@ version: '2'
 tasks:
   build:
     cmds:
-      - go build -o ../dist/server
+      - go build -o ../etc/dist/server
 
   run:
     deps: [build]
-    dir: ../dist
+    dir: ../etc/dist
     cmds:
       - ./server
 

@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"github.com/jinzhu/gorm"
+	"github.com/toorop/peerpx/core"
 )
 
 // Photo represents a Photo
@@ -31,7 +32,6 @@ type Photo struct {
 	Nsfw         bool
 	LicenceType  Licence
 	URL          string
-	Images       []Image `gorm:"-"`
 	User         User
 	Comments     []Comment `gorm:"-"`
 	Tags         []Tag     `gorm:"-"`
@@ -46,12 +46,11 @@ type Tag string
 // Licence temp
 type Licence uint8
 
-// Image represents
-type Image struct {
-	Size uint32
-	URL  string
-}
-
 // Comment temp
 type Comment struct {
+}
+
+// Create save new photo in DB
+func (p *Photo) Create() error {
+	return core.DB.Create(p).Error
 }

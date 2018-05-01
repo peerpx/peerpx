@@ -15,15 +15,16 @@ import (
 	"github.com/toorop/peerpx/api/middlewares"
 	"github.com/toorop/peerpx/core"
 	"github.com/toorop/peerpx/core/models"
-	"github.com/toorop/peerpx/db"
 )
 
 func main() {
 	var err error
 
+	log.Info("On est ici")
+
 	// load config
 	if err = core.InitViper(); err != nil {
-		log.Fatalf("unable to iny viper: %v ", err)
+		log.Fatalf("unable to init viper: %v ", err)
 	}
 
 	// init logger props
@@ -32,7 +33,7 @@ func main() {
 	logDir := viper.GetString("log.dir")
 	if logDir != "" {
 		var fd *os.File
-		fd, err = os.OpenFile(path.Join(logDir, "peerpx.log"), os.O_WRONLY|os.O_CREATE, 0755)
+		fd, err = os.OpenFile(path.Join(logDir, "peerpx.log"), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0755)
 		if err != nil {
 			log.Fatalf("unable to open log file: %v", err)
 		}
@@ -43,18 +44,23 @@ func main() {
 	}
 
 	// init DB
-	if err = db.InitDB(); err != nil {
+	if err = core.InitDB(); err != nil {
 		log.Fatalf("unable init DB: %v ", err)
 	}
-	defer db.DB.Close()
+	defer core.DB.Close()
+	log.Info("DB initialized")
 
 	// Migrate the schema
 	// TODO add option (its useless to migrate DB @each run)
-	if err = db.DB.AutoMigrate(&models.User{}, &models.Photo{}).Error; err != nil {
+	if err = core.DB.AutoMigrate(&models.User{}, &models.Photo{}).Error; err != nil {
 		log.Fatalf("unable to migrate DB: %v", err)
 	}
 
 	// init datastore
+	core.DS, err = core.NewDatastoreFs(viper.GetString("datastore.path"))
+	if err != nil {
+		log.Fatalf("unable to create datastore: %v", err)
+	}
 
 	// init Echo
 	e := echo.New()
@@ -81,5 +87,5 @@ func main() {
 	// search
 	e.GET("/api/v1/photo/search", controllers.PhotoSearch, middlewares.AuthRequired())
 
-	log.Fatal(e.Start(":8080"))
+	e.Logger.Fatal(e.Start(":8080"))
 }

@@ -2,7 +2,8 @@ package core
 
 import "errors"
 
-var datastore Datastore
+// DS global datastore
+var DS Datastore
 
 // Datastore represents the storage interface
 type Datastore interface {

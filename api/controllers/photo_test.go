@@ -11,15 +11,35 @@ import (
 
 	"encoding/json"
 
+	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"github.com/toorop/peerpx/core"
+	sqlmock "gopkg.in/DATA-DOG/go-sqlmock.v1"
 )
 
 func TestPhotoPost(t *testing.T) {
-	// init viper
+	// init viper (small values -> photo will be re-encoded)
 	viper.Set("photo.maxWidth", 100)
 	viper.Set("photo.maxHeight", 100)
+
+	//  init mocked datastore
+	core.DS = core.NewDatastoreMocked()
+
+	// mocked DB
+	_, mock, err := sqlmock.NewWithDSN("sqlmock_db_0")
+	if err != nil {
+		panic("Got an unexpected error.")
+	}
+
+	core.DB, err = gorm.Open("sqlmock", "sqlmock_db_0")
+	if err != nil {
+		panic("Got an unexpected error.")
+	}
+
+	defer core.DB.Close()
+	mock.ExpectExec("^INSERT INTO \"photos\"(.*)").WillReturnResult(sqlmock.NewResult(1, 1))
 
 	photoBytes, err := ioutil.ReadFile("../../etc/samples/photos/robin.jpg")
 	if err != nil {
@@ -37,7 +57,7 @@ func TestPhotoPost(t *testing.T) {
 		var response PhotoPostResponse
 		err = json.Unmarshal(resp, &response)
 		assert.NoError(t, err)
-		assert.Equal(t, "2DJLYuo9ky9CfThuGK2DU82dvENtJr8BzX7kmGkoad4J", response.PhotoID)
+		assert.Equal(t, "H62MqsYPjtrQ56bgEJyaMVSGNJH3koXkBHgpj4uigR8T", response.PhotoID)
 	}
 
 }

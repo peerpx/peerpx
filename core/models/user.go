@@ -20,7 +20,7 @@ type User struct {
 	ShowNsfw  bool
 	UserURL   string
 	Admin     bool
-	Avatars   []Image
+	AvatarURL string
 	APIKey    string // temp
 }
 

@@ -75,13 +75,12 @@ func (d *DatastoreFs) Delete(key string) error {
 	return err
 }
 
-// getPath return storage path
+// getPath returns storage path
 func (d *DatastoreFs) getPath(key string) (fPath string) {
 	fPath = d.basePath
 	runes := []rune(key)
 	if len(key) > 4 {
 		fPath = filepath.Join(fPath, string(runes[0:2]), string(runes[2:4]))
 	}
-	println(fPath)
 	return
 }

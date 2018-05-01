@@ -25,7 +25,7 @@ func TestPhotoPost(t *testing.T) {
 	viper.Set("photo.maxHeight", 100)
 
 	//  init mocked datastore
-	core.DS = core.NewDatastoreMocked()
+	core.DS = core.NewDatastoreMocked([]byte{}, nil)
 
 	// mocked DB
 	mock := core.InitMockedDB("sqlmock_db_0")
@@ -106,6 +106,39 @@ func TestPhotoGetByHashNotFound(t *testing.T) {
 
 	mock.ExpectQuery("^SELECT(.*)").WillReturnError(gorm.ErrRecordNotFound)
 	if assert.NoError(t, PhotoGetProperties(c)) {
+		assert.Equal(t, http.StatusNotFound, rec.Code)
+	}
+}
+
+func TestPhotoGet(t *testing.T) {
+	//  init mocked datastore
+	core.DS = core.NewDatastoreMocked([]byte{1, 2, 3}, nil)
+
+	e := echo.New()
+	req := httptest.NewRequest(echo.GET, "/", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.Set("id", "mocked")
+	c.Set("size", "small")
+	if assert.NoError(t, PhotoGet(c)) {
+		assert.Equal(t, http.StatusOK, rec.Code)
+		data, err := ioutil.ReadAll(rec.Body)
+		assert.NoError(t, err)
+		assert.Equal(t, []byte{1, 2, 3}, data)
+	}
+}
+
+func TestPhotoGetNotfound(t *testing.T) {
+	//  init mocked datastore
+	core.DS = core.NewDatastoreMocked(nil, core.ErrNotFoundInDatastore)
+
+	e := echo.New()
+	req := httptest.NewRequest(echo.GET, "/", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.Set("id", "mocked")
+	c.Set("size", "small")
+	if assert.NoError(t, PhotoGet(c)) {
 		assert.Equal(t, http.StatusNotFound, rec.Code)
 	}
 }

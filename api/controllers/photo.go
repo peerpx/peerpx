@@ -209,3 +209,23 @@ func PhotoGetProperties(c echo.Context) error {
 
 	return c.JSON(http.StatusOK, response)
 }
+
+// PhotoGet return a photo
+func PhotoGet(c echo.Context) error {
+	// get hash & size
+	hash := c.Param("id")
+	size := c.Param("size")
+	// osef de size for now
+	_ = size
+
+	// get photo from data store
+	photoBytes, err := core.DS.Get(hash)
+	if err != nil {
+		if err == core.ErrNotFoundInDatastore {
+			return c.NoContent(http.StatusNotFound)
+		}
+		log.Errorf("%v - controllers.PhotoGet - unable to get %s from datastore: %v", c.RealIP(), hash, err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+	return c.Blob(http.StatusOK, "image/jpeg ", photoBytes)
+}

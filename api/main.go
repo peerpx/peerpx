@@ -80,7 +80,7 @@ func main() {
 	// 	small   -> 500
 	//  usmall  -> 200
 	//  int -> int
-	e.GET("/api/v1/photo/:id:/:size", controllers.Todo, middlewares.AuthRequired())
+	e.GET("/api/v1/photo/:id:/:size", controllers.PhotoGet, middlewares.AuthRequired())
 
 	// get photo properties -> JSON object
 	e.GET("/api/v1/photo/:id/properties", controllers.PhotoGetProperties)

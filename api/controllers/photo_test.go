@@ -142,3 +142,18 @@ func TestPhotoGetNotfound(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, rec.Code)
 	}
 }
+
+func TestPhotoDel(t *testing.T) {
+	mock := core.InitMockedDB("sqlmock_db_3")
+	mock.ExpectExec("DELETE FROM \"photos\"(.*)").WillReturnResult(sqlmock.NewResult(1, 1))
+	defer core.DB.Close()
+	core.DS = core.NewDatastoreMocked(nil, nil)
+	e := echo.New()
+	req := httptest.NewRequest(echo.DELETE, "/", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.Set("id", "mocked")
+	if assert.NoError(t, PhotoDel(c)) {
+		assert.Equal(t, http.StatusOK, rec.Code)
+	}
+}

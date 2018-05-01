@@ -89,7 +89,7 @@ func main() {
 	e.PUT("/api/v1/photo/:id", controllers.Todo, middlewares.AuthRequired())
 
 	// delete photo
-	e.DELETE("/api/v1/photo/:id", controllers.Todo, middlewares.AuthRequired())
+	e.DELETE("/api/v1/photo/:id", controllers.PhotoDel, middlewares.AuthRequired())
 
 	// search
 	e.GET("/api/v1/photo/search", controllers.Todo, middlewares.AuthRequired())

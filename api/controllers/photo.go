@@ -229,3 +229,14 @@ func PhotoGet(c echo.Context) error {
 	}
 	return c.Blob(http.StatusOK, "image/jpeg ", photoBytes)
 }
+
+// PhotoDel delete a photo
+func PhotoDel(c echo.Context) error {
+	// get hash
+	hash := c.Param("id")
+	if err := models.PhotoDeleteByHash(hash); err != nil {
+		log.Errorf("%v - controllers.PhotoGet - unable to delete photo %s: %v", c.RealIP(), hash, err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+	return c.NoContent(http.StatusOK)
+}

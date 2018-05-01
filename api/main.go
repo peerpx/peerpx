@@ -54,6 +54,8 @@ func main() {
 		log.Fatalf("unable to migrate DB: %v", err)
 	}
 
+	// init datastore
+
 	// init Echo
 	e := echo.New()
 

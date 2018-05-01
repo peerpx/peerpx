@@ -2,6 +2,8 @@ package core
 
 import "errors"
 
+var datastore Datastore
+
 // Datastore represents the storage interface
 type Datastore interface {
 	// Put store value identified by key

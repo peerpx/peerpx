@@ -23,6 +23,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/toorop/peerpx/core"
 	"github.com/toorop/peerpx/core/models"
+	"strconv"
 )
 
 // PhotoPostResponse is the response sent by PhotoPost ctrl
@@ -59,7 +60,7 @@ func PhotoPost(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, response)
 	}
 
-	// resize && reencode
+	// resize && re-encode
 	reencodingNeeded := mimeType != "image/jpeg"
 	pic, _, err := image.Decode(bytes.NewBuffer(photoBytes))
 	if err != nil {
@@ -228,6 +229,51 @@ func PhotoGet(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 	return c.Blob(http.StatusOK, "image/jpeg ", photoBytes)
+}
+
+// PhotoResize returns resized photo
+func PhotoResize(c echo.Context) error {
+	// hauteur ou largeur
+	widthStr := c.Param("width")
+	heightStr := c.Param("height")
+
+	width, err := strconv.Atoi(widthStr)
+	if err != nil {
+		log.Errorf("%v - controllers.PhotoResize - unable to strconv.Atoi(%s): %v", c.RealIP(), widthStr, err)
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	height, err := strconv.Atoi(heightStr)
+	if err != nil {
+		log.Errorf("%v - controllers.PhotoResize - unable to strconv.Atoi(%s): %v", c.RealIP(), heightStr, err)
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	// hauteur!= 0 && largeur != 0
+	if height == 0 && width == 0 {
+		log.Errorf("%v - controllers.PhotoResize - height == width == 0", c.RealIP())
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	if height != 0 && width != 0 {
+		log.Errorf("%v - controllers.PhotoResize - height == 0 && width == 0", c.RealIP())
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	// get hash
+
+	// get from datastore
+
+	// init image
+
+	// resize
+	g := gift.New(
+		gift.Resize(300, 0, gift.LanczosResampling),
+	)
+	dst := image.NewRGBA(g.Bounds(src.Bounds()))
+	g.Draw(dst, src)
+
+	return c.NoContent(http.StatusOK)
 }
 
 // PhotoDel delete a photo

@@ -1,0 +1,6 @@
+version: '2'
+
+tasks:
+  test:
+    cmds:
+    - go test ./...

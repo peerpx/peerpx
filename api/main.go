@@ -20,8 +20,6 @@ import (
 func main() {
 	var err error
 
-	log.Info("On est ici")
-
 	// load config
 	if err = core.InitViper(); err != nil {
 		log.Fatalf("unable to init viper: %v ", err)
@@ -75,12 +73,18 @@ func main() {
 	// get photo
 	// size:
 	// 	max 	-> uploaded photo (modulo config max size)
-	//  large	-> 2k ?
-	// 	medium  -> 1k ?
-	// 	small   -> 500
-	//  usmall  -> 200
-	//  int -> int
-	e.GET("/api/v1/photo/:id:/:size", controllers.PhotoGet, middlewares.AuthRequired())
+	//  xl -> 2k ?
+	// 	l  -> 1k ?
+	// 	m  -> 500
+	//  s  -> 200
+	//  xs ->
+	e.GET("/api/v1/photo/:id/:size", controllers.PhotoGet)
+
+	// resize photo by height (in pixel)
+	e.GET("/api/v1/photo/:id/height/:height", controllers.PhotoResize)
+
+	// returns photo resized by width
+	e.GET("/api/v1/photo/:id/width/:width", controllers.PhotoResize)
 
 	// get photo properties -> JSON object
 	e.GET("/api/v1/photo/:id/properties", controllers.PhotoGetProperties)

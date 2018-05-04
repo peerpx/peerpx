@@ -3,10 +3,11 @@ prod: false
 hostname: peerpx.com
 
 log:
-  dir: "log"
+  dir: ""
 
 photo:
-  maxsize: 4096
+  maxWidth: 4096
+  maxHeight: 4096
 
 datastore:
   type: fs

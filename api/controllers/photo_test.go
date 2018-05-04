@@ -74,7 +74,7 @@ func TestPhotoPostNotAPhoto(t *testing.T) {
 	}
 }
 
-func TestPhotoGetByHash(t *testing.T) {
+func TestPhotoGetPropertiesByHash(t *testing.T) {
 	// mocked DB
 	mock := core.InitMockedDB("sqlmock_db_1")
 	defer core.DB.Close()
@@ -93,7 +93,7 @@ func TestPhotoGetByHash(t *testing.T) {
 	}
 }
 
-func TestPhotoGetByHashNotFound(t *testing.T) {
+func TestPhotoGetPropertiesByHashNotFound(t *testing.T) {
 	// mocked DB
 	mock := core.InitMockedDB("sqlmock_db_2")
 	defer core.DB.Close()
@@ -141,6 +141,16 @@ func TestPhotoGetNotfound(t *testing.T) {
 	if assert.NoError(t, PhotoGet(c)) {
 		assert.Equal(t, http.StatusNotFound, rec.Code)
 	}
+}
+
+func TestPhotoResize(t *testing.T) {
+	// init datastore
+	photoBytes, err := ioutil.ReadFile("../../etc/samples/photos/robin.jpg")
+	if err != nil {
+		panic(err)
+	}
+
+	//
 }
 
 func TestPhotoDel(t *testing.T) {

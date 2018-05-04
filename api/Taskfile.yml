@@ -15,8 +15,7 @@ tasks:
   deploy:
     deps: [build]
     cmds:
-      - rsync -arv ../dist/ peerpx@peerpx.com:/home/peerpx/
-
+      - rsync -arv ../etc/dist/server peerpx@peerpx.com:/home/peerpx/
 
   test:
     cmds:

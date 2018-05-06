@@ -144,13 +144,6 @@ func TestPhotoGetNotfound(t *testing.T) {
 }
 
 func TestPhotoResize(t *testing.T) {
-	// init datastore
-	photoBytes, err := ioutil.ReadFile("../../etc/samples/photos/robin.jpg")
-	if err != nil {
-		panic(err)
-	}
-
-	//
 }
 
 func TestPhotoDel(t *testing.T) {

@@ -1,9 +1,7 @@
 package controllers
 
 import (
-	"bytes"
 	"fmt"
-	"image"
 	// jpeg
 	_ "image/jpeg"
 	// png
@@ -13,17 +11,14 @@ import (
 
 	"github.com/labstack/echo"
 
-	"image/jpeg"
-
+	"strconv"
 	"time"
 
-	"github.com/disintegration/gift"
 	"github.com/jinzhu/gorm"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 	"github.com/toorop/peerpx/core"
 	"github.com/toorop/peerpx/core/models"
-	"strconv"
 )
 
 // PhotoPostResponse is the response sent by PhotoPost ctrl
@@ -42,7 +37,7 @@ func PhotoPost(c echo.Context) error {
 	// get params
 	// available
 	// - name
-	// - description TODO
+	// - descripion TODO
 
 	// get body -> photo
 	photoBytes, err := ioutil.ReadAll(c.Request().Body)
@@ -61,37 +56,25 @@ func PhotoPost(c echo.Context) error {
 	}
 
 	// resize && re-encode
-	reencodingNeeded := mimeType != "image/jpeg"
-	pic, _, err := image.Decode(bytes.NewBuffer(photoBytes))
+	image, err := core.NewImageFromBytes(photoBytes)
 	if err != nil {
-		log.Errorf("%v - controllers.PhotoPost - unable to decode photo: %v", c.RealIP(), err)
+		log.Errorf("%v - controllers.PhotoPost - unable to core.NewImageFromBytes(): %v", c.RealIP(), err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
-	if pic.Bounds().Max.X > viper.GetInt("photo.maxWidth") || pic.Bounds().Max.Y > viper.GetInt("photo.maxHeight") {
-		g := gift.New(
-			gift.ResizeToFit(viper.GetInt("photo.maxWidth"), viper.GetInt("photo.maxHeight"), gift.LanczosResampling),
-		)
-		picResized := image.NewRGBA(g.Bounds(pic.Bounds()))
-		g.Draw(picResized, pic)
-		pic = picResized
-		reencodingNeeded = true
-	}
-	// re-encoding
-	if reencodingNeeded {
-		buf := bytes.NewBuffer([]byte{})
-		options := jpeg.Options{Quality: 100}
-		if err = jpeg.Encode(buf, pic, &options); err != nil {
-			log.Errorf("%v - controllers.PhotoPost - unable to reencode photo: %v", c.RealIP(), err)
-			return c.NoContent(http.StatusInternalServerError)
-		}
-		photoBytes, err = ioutil.ReadAll(buf)
-		if err != nil {
-			log.Errorf("%v - controllers.PhotoPost - unable to read buffer when reencoding photo: %v", c.RealIP(), err)
+	if image.Width() > viper.GetInt("photo.maxWidth") || image.Height() > viper.GetInt("photo.maxHeight") {
+		err = image.ResizeToFit(viper.GetInt("photo.maxWidth"), viper.GetInt("photo.maxHeight"))
+		if err != nil && err != core.ErrImageUpscale {
+			log.Errorf("%v - controllers.PhotoPost - unable to image.ResizeToFit(): %v", c.RealIP(), err)
 			return c.NoContent(http.StatusInternalServerError)
 		}
 	}
 
 	photo := models.Photo{}
+	photoBytes, err = image.JPEG(100)
+	if err != nil {
+		log.Errorf("%v - controllers.PhotoPost - unable to image.JPEG(): %v", c.RealIP(), err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
 
 	// get hash
 	photo.Hash, err = core.GetHash(photoBytes)
@@ -100,14 +83,9 @@ func PhotoPost(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	// get final size
-	pic, _, err = image.Decode(bytes.NewBuffer(photoBytes))
-	if err != nil {
-		log.Errorf("%v - controllers.PhotoPost - unable to decode photo to get final size: %v", c.RealIP(), err)
-		return c.NoContent(http.StatusInternalServerError)
-	}
-	photo.Width = uint32(pic.Bounds().Max.X)
-	photo.Height = uint32(pic.Bounds().Max.Y)
+	//  size
+	photo.Width = uint32(image.Width())
+	photo.Height = uint32(image.Height())
 
 	// URL
 	if viper.GetBool("http.tlsEnabled") {
@@ -233,47 +211,53 @@ func PhotoGet(c echo.Context) error {
 
 // PhotoResize returns resized photo
 func PhotoResize(c echo.Context) error {
+	var width, height int
+	var err error
 	// hauteur ou largeur
 	widthStr := c.Param("width")
 	heightStr := c.Param("height")
 
-	width, err := strconv.Atoi(widthStr)
-	if err != nil {
-		log.Errorf("%v - controllers.PhotoResize - unable to strconv.Atoi(%s): %v", c.RealIP(), widthStr, err)
-		return c.NoContent(http.StatusBadRequest)
+	if widthStr == "" {
+		width = 0
+	} else {
+		width, err = strconv.Atoi(widthStr)
+		if err != nil {
+			log.Errorf("%v - controllers.PhotoResize - unable to strconv.Atoi(%s): %v", c.RealIP(), widthStr, err)
+			return c.NoContent(http.StatusBadRequest)
+		}
 	}
 
-	height, err := strconv.Atoi(heightStr)
-	if err != nil {
-		log.Errorf("%v - controllers.PhotoResize - unable to strconv.Atoi(%s): %v", c.RealIP(), heightStr, err)
-		return c.NoContent(http.StatusBadRequest)
+	if heightStr == "" {
+		height = 0
+	} else {
+		height, err = strconv.Atoi(heightStr)
+		if err != nil {
+			log.Errorf("%v - controllers.PhotoResize - unable to strconv.Atoi(%s): %v", c.RealIP(), heightStr, err)
+			return c.NoContent(http.StatusBadRequest)
+		}
 	}
-
-	// hauteur!= 0 && largeur != 0
 	if height == 0 && width == 0 {
 		log.Errorf("%v - controllers.PhotoResize - height == width == 0", c.RealIP())
 		return c.NoContent(http.StatusBadRequest)
 	}
 
-	if height != 0 && width != 0 {
-		log.Errorf("%v - controllers.PhotoResize - height == 0 && width == 0", c.RealIP())
-		return c.NoContent(http.StatusBadRequest)
+	image, err := core.NewImageFromDataStore(c.Param("id"))
+	if err != nil {
+		log.Errorf("%v - controllers.PhotoResize - unable to core.NewImageFromDataStore(%s): %v", c.RealIP(), c.Param("id"), err)
+		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	// get hash
+	if err = image.Resize(width, height); err != nil {
+		log.Errorf("%v - controllers.PhotoResize - unable to image.ResizeToFit(%d, %d): %v", c.RealIP(), width, height, err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
 
-	// get from datastore
-
-	// init image
-
-	// resize
-	g := gift.New(
-		gift.Resize(300, 0, gift.LanczosResampling),
-	)
-	dst := image.NewRGBA(g.Bounds(src.Bounds()))
-	g.Draw(dst, src)
-
-	return c.NoContent(http.StatusOK)
+	b, err := image.JPEG(100)
+	if err != nil {
+		log.Errorf("%v - controllers.PhotoResize - unable to image.JPEG(): %v", c.RealIP(), err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+	return c.Blob(http.StatusOK, "image/jpeg", b)
 }
 
 // PhotoDel delete a photo

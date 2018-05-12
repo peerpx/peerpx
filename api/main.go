@@ -15,6 +15,7 @@ import (
 	"github.com/toorop/peerpx/api/middlewares"
 	"github.com/toorop/peerpx/core"
 	"github.com/toorop/peerpx/core/models"
+	"github.com/labstack/echo/middleware"
 )
 
 func main() {
@@ -60,8 +61,11 @@ func main() {
 		log.Fatalf("unable to create datastore: %v", err)
 	}
 
-	// init Echo
+	// init
 	e := echo.New()
+
+	// add CORS
+	e.Use(middleware.CORS())
 
 	// routes
 

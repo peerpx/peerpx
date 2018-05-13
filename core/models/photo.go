@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"errors"
+
 	"github.com/jinzhu/gorm"
 	"github.com/toorop/peerpx/core"
 )
@@ -93,19 +94,4 @@ func (p *Photo) Update() error {
 		return errors.New("not DBifiée")
 	}
 	return core.DB.Update(p).Error
-}
-
-// Resize resize photo
-func (p *Photo) Resize(w, h uint) error {
-	return nil
-}
-
-// ResizeByHeight resize photo by height
-func (p *Photo) ResizeByHeight(h uint) error {
-	return p.Resize(0, h)
-}
-
-// ResizeByWidth resize photo by width
-func (p *Photo) ResizeByWidth(w uint) error {
-	return p.Resize(w, 0)
 }

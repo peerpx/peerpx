@@ -100,7 +100,7 @@ func main() {
 	e.DELETE("/api/v1/photo/:id", controllers.PhotoDel, middlewares.AuthRequired())
 
 	// search
-	e.GET("/api/v1/photo/search", controllers.Todo, middlewares.AuthRequired())
+	e.GET("/api/v1/photo/search", controllers.PhotoSearch, middlewares.AuthRequired())
 
 	e.Logger.Fatal(e.Start(":8080"))
 }

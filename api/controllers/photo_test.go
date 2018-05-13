@@ -160,3 +160,22 @@ func TestPhotoDel(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 	}
 }
+
+func TestPhotoSearchNoArgs(t *testing.T) {
+	// mocked DB
+	mock := core.InitMockedDB("sqlmock_db_4")
+	defer core.DB.Close()
+
+	e := echo.New()
+	req := httptest.NewRequest(echo.GET, "/", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	//c.Set("id", "mocked")
+
+	// test "valid" hash
+	rows := sqlmock.NewRows([]string{"id", "hash"}).AddRow(1, "mocked")
+	mock.ExpectQuery("^SELECT(.*)").WillReturnRows(rows)
+	if assert.NoError(t, PhotoSearch(c)) {
+		assert.Equal(t, http.StatusOK, rec.Code)
+	}
+}

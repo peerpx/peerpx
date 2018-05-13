@@ -73,6 +73,15 @@ func PhotoDeleteByHash(hash string) error {
 	return nil
 }
 
+// PhotoList list photos regarding optionnal args
+func PhotoList(args ...interface{}) (photos []Photo, err error) {
+	err = core.DB.Find(&photos).Error
+	if err != nil && err != gorm.ErrRecordNotFound {
+		return photos, err
+	}
+	return
+}
+
 // Create save new photo in DB
 func (p *Photo) Create() error {
 	return core.DB.Create(p).Error

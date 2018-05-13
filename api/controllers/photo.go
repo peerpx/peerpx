@@ -270,3 +270,59 @@ func PhotoDel(c echo.Context) error {
 	}
 	return c.NoContent(http.StatusOK)
 }
+
+// PhotoSearchResponse response structure for PhotoSearch
+type PhotoSearchResponse struct {
+	Total int
+	Limit int
+	Offset int
+	Data []PhotoGetPropertiesResponse
+}
+
+// PhotoSearch return an array of photos regarding the optionnals search params (TMP)
+func PhotoSearch(c echo.Context) error {
+	//TODO: take account of optionnal params
+	photos, err := models.PhotoList()
+	if err != nil {
+		log.Errorf("%v - controllers.PhotoSearch - unable to list photos: %v", c.RealIP(), err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+	var properties = make([]PhotoGetPropertiesResponse, 0)
+	for _, p := range photos {
+		property := PhotoGetPropertiesResponse{
+			Hash:         p.Hash,
+			Name:         p.Name,
+			Description:  p.Description,
+			camera:       p.Camera,
+			Lens:         p.Lens,
+			FocalLength:  p.FocalLength,
+			Iso:          p.Iso,
+			ShutterSpeed: p.ShutterSpeed,
+			Aperture:     p.Aperture,
+			TimeViewed:   p.TimeViewed,
+			Rating:       p.Rating,
+			Category:     p.Category,
+			Location:     p.Location,
+			Privacy:      p.Privacy,
+			Latitude:     p.Latitude,
+			Longitude:    p.Longitude,
+			TakenAt:      p.TakenAt,
+			Width:        p.Width,
+			Height:       p.Height,
+			Nsfw:         p.Nsfw,
+			LicenceType:  p.LicenceType,
+			URL:          p.URL,
+			// todo: Warning fake props
+			User: "@johndoe@peerpx.com",
+			Tags: []models.Tag{"fake", "sunrise"},
+		}
+		properties = append(properties, property)
+	}
+	response := PhotoSearchResponse{
+		Total: len(photos),
+		Limit: 0,
+		Offset: 0,
+		Data: properties,
+	}
+	return c.JSON(http.StatusOK, response)
+}

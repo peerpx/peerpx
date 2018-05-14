@@ -1,12 +1,10 @@
 package controllers
 
 import (
-	"fmt"
 	// jpeg
 	_ "image/jpeg"
 	// png
 	_ "image/png"
-	"io/ioutil"
 	"net/http"
 
 	"github.com/labstack/echo"
@@ -16,12 +14,18 @@ import (
 
 	"github.com/jinzhu/gorm"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 	"github.com/peerpx/peerpx/core"
 	"github.com/peerpx/peerpx/core/models"
+	//"encoding/json"
+	//"fmt"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"github.com/spf13/viper"
 )
 
 // PhotoPostResponse is the response sent by PhotoPost ctrl
+// TODO exif
 type PhotoPostResponse struct {
 	Code    uint8
 	Msg     string
@@ -31,25 +35,65 @@ type PhotoPostResponse struct {
 // PhotoPost handle POST /api/v1.photo request
 func PhotoPost(c echo.Context) error {
 	// code:
-	// 1 bad format (jpeg or png)
+	// 1 bad photo format (jpeg or png)
+	// 2 bad data (not valid photo struct/object)
+	// 3 bad file
 	response := PhotoPostResponse{}
 
-	// get params
-	// available
-	// - name
-	// - descripion TODO
+	// init photo
+	photo := models.Photo{}
+
+	form, err := c.MultipartForm()
+	if err != nil {
+		panic(err)
+	}
+
+	// get photo props
+	data := form.Value["data"]
+
+	if len(data) != 1 {
+		log.Infof("%v - controllers.PhotoPost - bad request len(data) = %d, 1 expected", c.RealIP(), len(data))
+		response.Code= 2
+		response.Msg = fmt.Sprintf("bad data lenght")
+		return c.JSON(http.StatusBadRequest, response)
+	}
+
+	// TODO verifier les props requises
+
+	if err := json.Unmarshal([]byte(data[0]), &photo); err != nil {
+		log.Infof("ERR %v", err)
+		response.Code = 2
+		response.Msg = fmt.Sprintf("bad data: '%s' given", data)
+		return c.JSON(http.StatusBadRequest, response)
+	}
+
+	// get photo file
+	 photoFile:= form.File["file"]
+	if len(photoFile) != 1 {
+		log.Infof("%v - controllers.PhotoPost - bad request len(photoFile) = %d, 1 expected", c.RealIP(), len(photoFile))
+		response.Code= 3
+		response.Msg = fmt.Sprintf("bad photoFile lenght")
+		return c.JSON(http.StatusBadRequest, response)
+	}
 
 	// get body -> photo
-	photoBytes, err := ioutil.ReadAll(c.Request().Body)
+	fd, err := photoFile[0].Open()
 	if err != nil {
-		log.Infof("%v - controllers.PhotoPost - unable to read request body: %v", c.RealIP(), err)
+		log.Infof("%v - controllers.PhotoPost - unable to read photoFile: %v", c.RealIP(), err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
-	defer c.Request().Body.Close()
+	defer fd.Close()
+
+	photoBytes, err := ioutil.ReadAll(fd)
+	if err != nil {
+		log.Infof("%v - controllers.PhotoPost - unable to ioutil.ReadAll(fd): %v", c.RealIP(), err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
 
 	// check type
 	mimeType := http.DetectContentType(photoBytes)
 	if mimeType != "image/jpeg" && mimeType != "image/png" {
+		log.Infof("%v - controllers.PhotoPost - bad file type: %s", c.RealIP(), mimeType)
 		response.Code = 1
 		response.Msg = fmt.Sprintf("only jpeg or png file are allowed, %s given", mimeType)
 		return c.JSON(http.StatusBadRequest, response)
@@ -69,7 +113,7 @@ func PhotoPost(c echo.Context) error {
 		}
 	}
 
-	photo := models.Photo{}
+	//
 	photoBytes, err = image.JPEG(100)
 	if err != nil {
 		log.Errorf("%v - controllers.PhotoPost - unable to image.JPEG(): %v", c.RealIP(), err)
@@ -88,6 +132,7 @@ func PhotoPost(c echo.Context) error {
 	photo.Height = uint32(image.Height())
 
 	// URL
+	// TODO a supprimer ?
 	if viper.GetBool("http.tlsEnabled") {
 		photo.URL = fmt.Sprintf("https://%s/api/v1/photo/%s/raw", viper.GetString("hostname"), photo.Hash)
 	} else {
@@ -113,7 +158,6 @@ func PhotoPost(c echo.Context) error {
 	// return response
 	response.PhotoID = photo.Hash
 	return c.JSON(http.StatusCreated, response)
-
 }
 
 // PhotoGetPropertiesResponse response for PhotoGetProperties controller

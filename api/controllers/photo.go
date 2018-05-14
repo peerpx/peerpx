@@ -17,8 +17,8 @@ import (
 	"github.com/jinzhu/gorm"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"github.com/toorop/peerpx/core"
-	"github.com/toorop/peerpx/core/models"
+	"github.com/peerpx/peerpx/core"
+	"github.com/peerpx/peerpx/core/models"
 )
 
 // PhotoPostResponse is the response sent by PhotoPost ctrl

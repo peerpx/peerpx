@@ -15,7 +15,7 @@ import (
 	"github.com/labstack/echo"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
-	"github.com/toorop/peerpx/core"
+	"github.com/peerpx/peerpx/core"
 	sqlmock "gopkg.in/DATA-DOG/go-sqlmock.v1"
 )
 

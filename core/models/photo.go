@@ -6,7 +6,7 @@ import (
 	"errors"
 
 	"github.com/jinzhu/gorm"
-	"github.com/toorop/peerpx/core"
+	"github.com/peerpx/peerpx/core"
 )
 
 // Category temp definition

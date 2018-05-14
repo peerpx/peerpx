@@ -11,10 +11,10 @@ import (
 	"github.com/labstack/echo"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
-	"github.com/toorop/peerpx/api/controllers"
-	"github.com/toorop/peerpx/api/middlewares"
-	"github.com/toorop/peerpx/core"
-	"github.com/toorop/peerpx/core/models"
+	"github.com/peerpx/peerpx/api/controllers"
+	"github.com/peerpx/peerpx/api/middlewares"
+	"github.com/peerpx/peerpx/core"
+	"github.com/peerpx/peerpx/core/models"
 	"github.com/labstack/echo/middleware"
 )
 

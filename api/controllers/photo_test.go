@@ -64,12 +64,6 @@ func TestPhotoPost(t *testing.T) {
 	handleErr(err)
 	handleErr(writer.Close())
 
-/*
-	bodyByte, err := ioutil.ReadAll(body)
-	handleErr(err)
-	println(string(bodyByte))
-*/
-
 	e := echo.New()
 	req := httptest.NewRequest(echo.POST, "/", body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -87,14 +81,30 @@ func TestPhotoPost(t *testing.T) {
 	}
 }
 
-/*
+
 func TestPhotoPostNotAPhoto(t *testing.T) {
-	photoBytes, err := ioutil.ReadFile("../../etc/samples/photos/not-a-photo.jpg")
-	if err != nil {
-		panic(err)
-	}
+	data := `{"Name":"ma super photo", "Description":" ma description"}`
+
+	body := new(bytes.Buffer)
+	writer :=multipart.NewWriter(body)
+
+	handleErr(writer.WriteField("data", data))
+
+	file, err := os.Open("../../etc/samples/photos/not-a-photo.jpg")
+	handleErr(err)
+	defer file.Close()
+
+
+	part, err := writer.CreateFormFile("file", "robin.jpg")
+	handleErr(err)
+
+	_, err  = io.Copy(part, file)
+	handleErr(err)
+	handleErr(writer.Close())
+
 	e := echo.New()
-	req := httptest.NewRequest(echo.POST, "/", bytes.NewBuffer(photoBytes))
+	req := httptest.NewRequest(echo.POST, "/", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
@@ -108,7 +118,7 @@ func TestPhotoPostNotAPhoto(t *testing.T) {
 		assert.Equal(t, uint8(1), response.Code)
 	}
 }
-*/
+
 
 func TestPhotoGetPropertiesByHash(t *testing.T) {
 	// mocked DB

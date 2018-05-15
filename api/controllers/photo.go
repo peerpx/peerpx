@@ -10,26 +10,26 @@ import (
 	"github.com/labstack/echo"
 
 	"strconv"
-	"time"
 
 	"github.com/jinzhu/gorm"
-	log "github.com/sirupsen/logrus"
 	"github.com/peerpx/peerpx/core"
 	"github.com/peerpx/peerpx/core/models"
+	log "github.com/sirupsen/logrus"
 	//"encoding/json"
 	//"fmt"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+
 	"github.com/spf13/viper"
 )
 
 // PhotoPostResponse is the response sent by PhotoPost ctrl
 // TODO exif
 type PhotoPostResponse struct {
-	Code    uint8
-	Msg     string
-	PhotoID string
+	Code       uint8        `json:"code"`
+	Msg        string       `json:"msg"`
+	PhotoProps models.Photo `json:"photoProps"`
 }
 
 // PhotoPost handle POST /api/v1.photo request
@@ -53,7 +53,7 @@ func PhotoPost(c echo.Context) error {
 
 	if len(data) != 1 {
 		log.Infof("%v - controllers.PhotoPost - bad request len(data) = %d, 1 expected", c.RealIP(), len(data))
-		response.Code= 2
+		response.Code = 2
 		response.Msg = fmt.Sprintf("bad data lenght")
 		return c.JSON(http.StatusBadRequest, response)
 	}
@@ -68,10 +68,10 @@ func PhotoPost(c echo.Context) error {
 	}
 
 	// get photo file
-	 photoFile:= form.File["file"]
+	photoFile := form.File["file"]
 	if len(photoFile) != 1 {
 		log.Infof("%v - controllers.PhotoPost - bad request len(photoFile) = %d, 1 expected", c.RealIP(), len(photoFile))
-		response.Code= 3
+		response.Code = 3
 		response.Msg = fmt.Sprintf("bad photoFile lenght")
 		return c.JSON(http.StatusBadRequest, response)
 	}
@@ -156,36 +156,8 @@ func PhotoPost(c echo.Context) error {
 	}
 
 	// return response
-	response.PhotoID = photo.Hash
+	response.PhotoProps = photo
 	return c.JSON(http.StatusCreated, response)
-}
-
-// PhotoGetPropertiesResponse response for PhotoGetProperties controller
-type PhotoGetPropertiesResponse struct {
-	Hash         string
-	Name         string
-	Description  string
-	camera       string
-	Lens         string
-	FocalLength  uint16
-	Iso          uint16
-	ShutterSpeed string  // or float ? "1/250" vs 0.004
-	Aperture     float32 // 5.6, 32, 1.4
-	TimeViewed   uint64
-	Rating       float32
-	Category     models.Category
-	Location     string
-	Privacy      bool // true if private
-	Latitude     float32
-	Longitude    float32
-	TakenAt      time.Time
-	Width        uint32
-	Height       uint32
-	Nsfw         bool
-	LicenceType  models.Licence
-	URL          string
-	User         string // @user@instance
-	Tags         []models.Tag
 }
 
 // PhotoGetProperties returns PhotoProperties
@@ -202,11 +174,11 @@ func PhotoGetProperties(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 	// response
-	response := PhotoGetPropertiesResponse{
+	/*response := models.Photo{
 		Hash:         hash,
 		Name:         photo.Name,
 		Description:  photo.Description,
-		camera:       photo.Camera,
+		Camera:       photo.Camera,
 		Lens:         photo.Lens,
 		FocalLength:  photo.FocalLength,
 		Iso:          photo.Iso,
@@ -228,9 +200,9 @@ func PhotoGetProperties(c echo.Context) error {
 		// todo: Warning fake props
 		User: "@johndoe@peerpx.com",
 		Tags: []models.Tag{"fake", "sunrise"},
-	}
+	}*/
 
-	return c.JSON(http.StatusOK, response)
+	return c.JSON(http.StatusOK, photo)
 }
 
 // PhotoGet return a photo
@@ -317,23 +289,23 @@ func PhotoDel(c echo.Context) error {
 
 // PhotoSearchResponse response structure for PhotoSearch
 type PhotoSearchResponse struct {
-	Total int
-	Limit int
+	Total  int
+	Limit  int
 	Offset int
-	Data []PhotoGetPropertiesResponse
+	Data   []models.Photo
 }
 
 // PhotoSearch return an array of photos regarding the optionnals search params (TMP)
 func PhotoSearch(c echo.Context) error {
-	//TODO: take account of optionnal params
+	//TODO: take account of optional params
 	photos, err := models.PhotoList()
 	if err != nil {
 		log.Errorf("%v - controllers.PhotoSearch - unable to list photos: %v", c.RealIP(), err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
-	var properties = make([]PhotoGetPropertiesResponse, 0)
+	/*var properties = make([]PhotoProperties, 0)
 	for _, p := range photos {
-		property := PhotoGetPropertiesResponse{
+		property := PhotoProperties{
 			Hash:         p.Hash,
 			Name:         p.Name,
 			Description:  p.Description,
@@ -361,12 +333,12 @@ func PhotoSearch(c echo.Context) error {
 			Tags: []models.Tag{"fake", "sunrise"},
 		}
 		properties = append(properties, property)
-	}
+	}*/
 	response := PhotoSearchResponse{
-		Total: len(photos),
-		Limit: 0,
+		Total:  len(photos),
+		Limit:  0,
 		Offset: 0,
-		Data: properties,
+		Data:   photos,
 	}
 	return c.JSON(http.StatusOK, response)
 }

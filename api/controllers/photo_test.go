@@ -11,27 +11,25 @@ import (
 
 	"encoding/json"
 
-	"github.com/labstack/echo"
-	"github.com/spf13/viper"
-	"github.com/stretchr/testify/assert"
-	"github.com/peerpx/peerpx/core"
-	"gopkg.in/DATA-DOG/go-sqlmock.v1"
+	"io"
 	"mime/multipart"
 	"os"
-	"io"
+
 	"github.com/jinzhu/gorm"
+	"github.com/labstack/echo"
+	"github.com/peerpx/peerpx/core"
+	"github.com/spf13/viper"
+	"github.com/stretchr/testify/assert"
+	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 )
 
-
-func handleErr(err error){
+func handleErr(err error) {
 	if err != nil {
 		panic(err)
 	}
 }
 
-
 func TestPhotoPost(t *testing.T) {
-
 	// init viper (small values -> photo will be re-encoded)
 	viper.Set("photo.maxWidth", 100)
 	viper.Set("photo.maxHeight", 100)
@@ -44,11 +42,10 @@ func TestPhotoPost(t *testing.T) {
 	defer core.DB.Close()
 	mock.ExpectExec("^INSERT INTO \"photos\"(.*)").WillReturnResult(sqlmock.NewResult(1, 1))
 
-
 	data := `{"Name":"ma super photo", "Description":" ma description"}`
 
 	body := new(bytes.Buffer)
-	writer :=multipart.NewWriter(body)
+	writer := multipart.NewWriter(body)
 
 	handleErr(writer.WriteField("data", data))
 
@@ -56,11 +53,10 @@ func TestPhotoPost(t *testing.T) {
 	handleErr(err)
 	defer file.Close()
 
-
 	part, err := writer.CreateFormFile("file", "robin.jpg")
 	handleErr(err)
 
-	_, err  = io.Copy(part, file)
+	_, err = io.Copy(part, file)
 	handleErr(err)
 	handleErr(writer.Close())
 
@@ -77,16 +73,15 @@ func TestPhotoPost(t *testing.T) {
 		var response PhotoPostResponse
 		err = json.Unmarshal(resp, &response)
 		assert.NoError(t, err)
-		assert.Equal(t, "H62MqsYPjtrQ56bgEJyaMVSGNJH3koXkBHgpj4uigR8T", response.PhotoID)
+		assert.Equal(t, "H62MqsYPjtrQ56bgEJyaMVSGNJH3koXkBHgpj4uigR8T", response.PhotoProps.Hash)
 	}
 }
-
 
 func TestPhotoPostNotAPhoto(t *testing.T) {
 	data := `{"Name":"ma super photo", "Description":" ma description"}`
 
 	body := new(bytes.Buffer)
-	writer :=multipart.NewWriter(body)
+	writer := multipart.NewWriter(body)
 
 	handleErr(writer.WriteField("data", data))
 
@@ -94,11 +89,10 @@ func TestPhotoPostNotAPhoto(t *testing.T) {
 	handleErr(err)
 	defer file.Close()
 
-
 	part, err := writer.CreateFormFile("file", "robin.jpg")
 	handleErr(err)
 
-	_, err  = io.Copy(part, file)
+	_, err = io.Copy(part, file)
 	handleErr(err)
 	handleErr(writer.Close())
 
@@ -118,7 +112,6 @@ func TestPhotoPostNotAPhoto(t *testing.T) {
 		assert.Equal(t, uint8(1), response.Code)
 	}
 }
-
 
 func TestPhotoGetPropertiesByHash(t *testing.T) {
 	// mocked DB

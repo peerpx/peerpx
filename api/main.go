@@ -102,5 +102,10 @@ func main() {
 	// search
 	e.GET("/api/v1/photo/search", controllers.PhotoSearch)
 
+	//user
+
+	// add user
+	e.POST("/api/v1/user", controllers.UserPost)
+
 	e.Logger.Fatal(e.Start(":8080"))
 }

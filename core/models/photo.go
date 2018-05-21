@@ -77,8 +77,9 @@ type Photo struct {
 	LicenceType  Licence
 	URL          string
 	User         User
-	Comments     []Comment `gorm:"-"`
-	Tags         []Tag     `gorm:"-"`
+	// Todo remove
+	Comments []Comment `gorm:"-" json:"-"`
+	Tags     []Tag     `gorm:"-"`
 }
 
 // PhotoGetByHash return photo from its hash
@@ -103,7 +104,7 @@ func PhotoDeleteByHash(hash string) error {
 	return nil
 }
 
-// PhotoList list photos regarding optionnal args
+// PhotoList list photos regarding optional args
 func PhotoList(args ...interface{}) (photos []Photo, err error) {
 	err = core.DB.Find(&photos).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
@@ -120,9 +121,66 @@ func (p *Photo) Create() error {
 // Update update photo in DB
 func (p *Photo) Update() error {
 	if p.ID == 0 {
-		return errors.New("not DBifiée")
+		return errors.New("photo is not recoded in DB yet, i can't update it")
 	}
-	return core.DB.Update(p).Error
+	return core.DB.Save(p).Error
 }
 
-//func (p *Photo) GetPublicProperties() {}
+// validate check if photo properties are valid
+// 0: ok
+// 1: Name is too long (max length: 255)
+// 2: Camera is too long (max length: 255)
+// 3: Lens is too long (max length: 255)
+// 4: ShutterSpeed is too long (max length: 255)
+// 5: Location is too long (max length: 255)
+// 6: Latitude is out of range ( -90.00 < latitude < +90.00
+// 7: Longitude is out of range (-180 < longitude < +180.00
+// 8: Hey Marty "TakenAt" is in the future !
+func (p *Photo) Validate() uint8 {
+	// Name is stored as varchar(255)
+	if len(p.Name) > 255 {
+		return 1
+	}
+
+	// Camera varChar(255)
+	if len(p.Camera) > 255 {
+		return 2
+	}
+
+	// Lens  varChar(255)
+	if len(p.Lens) > 255 {
+		return 3
+	}
+
+	// ShutterSpeed string  // or float ? "1/250" vs 0.004
+	if len(p.ShutterSpeed) > 255 {
+		return 4
+	}
+
+	// TODO	Category Category
+
+	//	Location varchar(255)
+	if len(p.Location) > 255 {
+		return 5
+	}
+
+	//Latitude
+	if p.Latitude < -90.00 || p.Latitude > 90.00 {
+		return 6
+	}
+
+	// Longitude
+	if p.Longitude < -180.00 || p.Longitude > 180.00 {
+		return 7
+	}
+
+	// TakenAt      time.Time not in future
+	if p.TakenAt.After(time.Now()) {
+		return 8
+	}
+
+	// TODO LicenceType  Licence
+
+	// OK
+	return 0
+}

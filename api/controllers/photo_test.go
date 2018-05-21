@@ -218,3 +218,81 @@ func TestPhotoSearchNoArgs(t *testing.T) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 	}
 }
+
+func TestPhotoPut(t *testing.T) {
+	// mocked DB
+	mock := core.InitMockedDB("sqlmock_db_5")
+	defer core.DB.Close()
+	e := echo.New()
+	rec := httptest.NewRecorder()
+
+	// body doesn't represent a valid json strut
+	req := httptest.NewRequest("PUT", "/", bytes.NewBuffer([]byte{}))
+	c := e.NewContext(req, rec)
+	if assert.NoError(t, PhotoPut(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	}
+
+	// no found (bad hash)
+	photoJson := []byte(`{"hash": "bar"}`)
+	mock.ExpectQuery("^SELECT(.*)").WillReturnError(gorm.ErrRecordNotFound)
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest("PUT", "/", bytes.NewBuffer(photoJson))
+	c = e.NewContext(req, rec)
+	if assert.NoError(t, PhotoPut(c)) {
+		assert.Equal(t, http.StatusNotFound, rec.Code)
+	}
+
+	// returned
+	photoNew := []byte(`{
+	"hash": "should not be modified",
+	"name": "newName",
+	"description": "newDescription",
+	"camera": "newCamera",
+	"lens": "newLens",
+	"focalLength": 50,
+	"iso": 100,
+	"shutterSpeed": "newShutterSpeed",
+	"aperture": 0.6,
+	"location": "newLocation",
+	"privacy": false,
+	"latitude": 80,
+	"longitude": 80,
+	"takenAt": "2018-05-21T15:04:05Z",
+	"nsfw": false}
+	`)
+
+	rows := sqlmock.NewRows([]string{"id", "name"}).AddRow(1, "mocked")
+	mock.ExpectQuery("^SELECT(.*)").WillReturnRows(rows)
+	mock.ExpectExec("^UPDATE \"photos\"(.*)").WillReturnResult(sqlmock.NewResult(1, 1))
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest("PUT", "/", bytes.NewBuffer(photoNew))
+	c = e.NewContext(req, rec)
+	if assert.NoError(t, PhotoPut(c)) {
+		assert.Equal(t, http.StatusOK, rec.Code)
+		// get body
+		// json -> stuct
+		var response PhotoPutResponse
+		err := json.Unmarshal(rec.Body.Bytes(), &response)
+		if assert.NoError(t, err) {
+			assert.Equal(t, uint8(0), response.Code)
+			assert.Equal(t, "", response.Photo.Hash)
+			assert.Equal(t, "newName", response.Photo.Name)
+			assert.Equal(t, "newDescription", response.Photo.Description)
+			assert.Equal(t, "newCamera", response.Photo.Camera)
+			assert.Equal(t, "newLens", response.Photo.Lens)
+			assert.Equal(t, uint16(50), response.Photo.FocalLength)
+			assert.Equal(t, uint16(100), response.Photo.Iso)
+			assert.Equal(t, "newShutterSpeed", response.Photo.ShutterSpeed)
+			assert.Equal(t, float32(0.6), response.Photo.Aperture)
+			assert.Equal(t, "newLocation", response.Photo.Location)
+			assert.Equal(t, false, response.Photo.Privacy)
+			assert.Equal(t, float32(80.00), response.Photo.Latitude)
+			assert.Equal(t, float32(80.00), response.Photo.Longitude)
+			assert.Equal(t, int64(1526915045), response.Photo.TakenAt.Unix())
+			assert.Equal(t, false, response.Photo.Nsfw)
+		}
+
+	}
+
+}

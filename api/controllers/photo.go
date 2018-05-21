@@ -9,8 +9,6 @@ import (
 
 	"github.com/labstack/echo"
 
-	"strconv"
-
 	"github.com/jinzhu/gorm"
 	"github.com/peerpx/peerpx/core"
 	"github.com/peerpx/peerpx/core/models"
@@ -20,6 +18,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+
+	"strconv"
 
 	"github.com/spf13/viper"
 )
@@ -173,35 +173,6 @@ func PhotoGetProperties(c echo.Context) error {
 		log.Errorf("%v - controllers.PhotoGetProperties - unable to models.PhotoGetByHash(%s): %v", c.RealIP(), hash, err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
-	// response
-	/*response := models.Photo{
-		Hash:         hash,
-		Name:         photo.Name,
-		Description:  photo.Description,
-		Camera:       photo.Camera,
-		Lens:         photo.Lens,
-		FocalLength:  photo.FocalLength,
-		Iso:          photo.Iso,
-		ShutterSpeed: photo.ShutterSpeed,
-		Aperture:     photo.Aperture,
-		TimeViewed:   photo.TimeViewed,
-		Rating:       photo.Rating,
-		Category:     photo.Category,
-		Location:     photo.Location,
-		Privacy:      photo.Privacy,
-		Latitude:     photo.Latitude,
-		Longitude:    photo.Longitude,
-		TakenAt:      photo.TakenAt,
-		Width:        photo.Width,
-		Height:       photo.Height,
-		Nsfw:         photo.Nsfw,
-		LicenceType:  photo.LicenceType,
-		URL:          photo.URL,
-		// todo: Warning fake props
-		User: "@johndoe@peerpx.com",
-		Tags: []models.Tag{"fake", "sunrise"},
-	}*/
-
 	return c.JSON(http.StatusOK, photo)
 }
 
@@ -223,6 +194,89 @@ func PhotoGet(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 	return c.Blob(http.StatusOK, "image/jpeg ", photoBytes)
+}
+
+// PhotoPutResponse
+type PhotoPutResponse struct {
+	Code  uint8
+	Photo models.Photo
+}
+
+// PhotoPut alter photo properties
+func PhotoPut(c echo.Context) error {
+
+	// read body
+	bodyBytes, err := ioutil.ReadAll(c.Request().Body)
+	defer c.Request().Body.Close()
+	if err != nil {
+		log.Errorf("%v - controllers.PhotoPut - read request body failed: %v", c.RealIP(), err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	// -> photoNew
+	var photoNew models.Photo
+	if err := json.Unmarshal(bodyBytes, &photoNew); err != nil {
+		log.Errorf("%v - controllers.PhotoPut - unmarshall photoNew failed : %v", c.RealIP(), err)
+		return c.NoContent(http.StatusBadRequest)
+	}
+
+	// init response
+	response := PhotoPutResponse{}
+
+	// get photo props ->  photoOri
+	photoOri, err := models.PhotoGetByHash(photoNew.Hash)
+	switch err {
+	case gorm.ErrRecordNotFound:
+		return c.NoContent(http.StatusNotFound)
+	case nil:
+	default:
+		log.Errorf("%v - controllers.PhotoPut - models.PhotoGetByHash(%s) failed : %v", c.RealIP(), photoNew.Hash, err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	// validate
+	if status := photoNew.Validate(); status != 0 {
+		response.Code = status
+	}
+
+	// PhotoNew -> PhotoOri (update)
+	photoOri.Name = photoNew.Name
+	photoOri.Description = photoNew.Description
+	photoOri.Camera = photoNew.Camera
+	photoOri.Lens = photoNew.Lens
+	photoOri.FocalLength = photoNew.FocalLength
+	photoOri.Iso = photoNew.Iso
+	photoOri.ShutterSpeed = photoNew.ShutterSpeed
+	photoOri.Aperture = photoNew.Aperture
+	// TODO Category     Category
+	photoOri.Location = photoNew.Location
+	photoOri.Privacy = photoNew.Privacy
+	photoOri.Latitude = photoNew.Latitude
+	photoOri.Longitude = photoNew.Longitude
+	photoOri.TakenAt = photoNew.TakenAt
+	photoOri.Nsfw = photoNew.Nsfw
+	// TODO LicenceType  Licence
+
+	// photo.Update -> DB
+	if err = photoOri.Update(); err != nil {
+		log.Errorf("%v - controllers.PhotoPut - photoOri.Update() failed : %v", c.RealIP(), err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	// return photo
+	response.Photo = photoOri
+	return c.JSON(http.StatusOK, response)
+}
+
+// PhotoDel delete a photo
+func PhotoDel(c echo.Context) error {
+	// get hash
+	hash := c.Param("id")
+	if err := models.PhotoDeleteByHash(hash); err != nil {
+		log.Errorf("%v - controllers.PhotoGet - unable to delete photo %s: %v", c.RealIP(), hash, err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+	return c.NoContent(http.StatusOK)
 }
 
 // PhotoResize returns resized photo
@@ -276,17 +330,6 @@ func PhotoResize(c echo.Context) error {
 	return c.Blob(http.StatusOK, "image/jpeg", b)
 }
 
-// PhotoDel delete a photo
-func PhotoDel(c echo.Context) error {
-	// get hash
-	hash := c.Param("id")
-	if err := models.PhotoDeleteByHash(hash); err != nil {
-		log.Errorf("%v - controllers.PhotoGet - unable to delete photo %s: %v", c.RealIP(), hash, err)
-		return c.NoContent(http.StatusInternalServerError)
-	}
-	return c.NoContent(http.StatusOK)
-}
-
 // PhotoSearchResponse response structure for PhotoSearch
 type PhotoSearchResponse struct {
 	Total  int
@@ -303,37 +346,6 @@ func PhotoSearch(c echo.Context) error {
 		log.Errorf("%v - controllers.PhotoSearch - unable to list photos: %v", c.RealIP(), err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
-	/*var properties = make([]PhotoProperties, 0)
-	for _, p := range photos {
-		property := PhotoProperties{
-			Hash:         p.Hash,
-			Name:         p.Name,
-			Description:  p.Description,
-			camera:       p.Camera,
-			Lens:         p.Lens,
-			FocalLength:  p.FocalLength,
-			Iso:          p.Iso,
-			ShutterSpeed: p.ShutterSpeed,
-			Aperture:     p.Aperture,
-			TimeViewed:   p.TimeViewed,
-			Rating:       p.Rating,
-			Category:     p.Category,
-			Location:     p.Location,
-			Privacy:      p.Privacy,
-			Latitude:     p.Latitude,
-			Longitude:    p.Longitude,
-			TakenAt:      p.TakenAt,
-			Width:        p.Width,
-			Height:       p.Height,
-			Nsfw:         p.Nsfw,
-			LicenceType:  p.LicenceType,
-			URL:          p.URL,
-			// todo: Warning fake props
-			User: "@johndoe@peerpx.com",
-			Tags: []models.Tag{"fake", "sunrise"},
-		}
-		properties = append(properties, property)
-	}*/
 	response := PhotoSearchResponse{
 		Total:  len(photos),
 		Limit:  0,

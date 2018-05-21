@@ -94,7 +94,7 @@ func main() {
 	e.GET("/api/v1/photo/:id/properties", controllers.PhotoGetProperties)
 
 	// update photo properties
-	e.PUT("/api/v1/photo/:id", controllers.Todo, middlewares.AuthRequired())
+	e.PUT("/api/v1/photo", controllers.PhotoPut, middlewares.AuthRequired())
 
 	// delete photo
 	e.DELETE("/api/v1/photo/:id", controllers.PhotoDel, middlewares.AuthRequired())

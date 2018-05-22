@@ -199,7 +199,7 @@ func PhotoGet(c echo.Context) error {
 // PhotoPutResponse
 type PhotoPutResponse struct {
 	Code  uint8
-	Photo models.Photo
+	Photo *models.Photo
 }
 
 // PhotoPut alter photo properties
@@ -237,6 +237,7 @@ func PhotoPut(c echo.Context) error {
 	// validate
 	if status := photoNew.Validate(); status != 0 {
 		response.Code = status
+		return c.JSON(http.StatusBadRequest, response)
 	}
 
 	// PhotoNew -> PhotoOri (update)
@@ -264,7 +265,7 @@ func PhotoPut(c echo.Context) error {
 	}
 
 	// return photo
-	response.Photo = photoOri
+	response.Photo = &photoOri
 	return c.JSON(http.StatusOK, response)
 }
 

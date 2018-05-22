@@ -198,8 +198,8 @@ func PhotoGet(c echo.Context) error {
 
 // PhotoPutResponse
 type PhotoPutResponse struct {
-	Code  uint8
-	Photo *models.Photo
+	Code  uint8         `json:"code"`
+	Photo *models.Photo `json:"photo"`
 }
 
 // PhotoPut alter photo properties
@@ -223,6 +223,13 @@ func PhotoPut(c echo.Context) error {
 	// init response
 	response := PhotoPutResponse{}
 
+	// validate
+	if status := photoNew.Validate(); status != 0 {
+		response.Code = status
+		return c.JSON(http.StatusBadRequest, response)
+
+	}
+
 	// get photo props ->  photoOri
 	photoOri, err := models.PhotoGetByHash(photoNew.Hash)
 	switch err {
@@ -232,12 +239,6 @@ func PhotoPut(c echo.Context) error {
 	default:
 		log.Errorf("%v - controllers.PhotoPut - models.PhotoGetByHash(%s) failed : %v", c.RealIP(), photoNew.Hash, err)
 		return c.NoContent(http.StatusInternalServerError)
-	}
-
-	// validate
-	if status := photoNew.Validate(); status != 0 {
-		response.Code = status
-		return c.JSON(http.StatusBadRequest, response)
 	}
 
 	// PhotoNew -> PhotoOri (update)

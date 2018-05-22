@@ -243,6 +243,20 @@ func TestPhotoPut(t *testing.T) {
 		assert.Equal(t, http.StatusNotFound, rec.Code)
 	}
 
+	// bad props should return error and empty photo
+	photoJson = []byte(`{"hash": "bar", "latitude":360}`)
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest("PUT", "/", bytes.NewBuffer(photoJson))
+	c = e.NewContext(req, rec)
+	if assert.NoError(t, PhotoPut(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+		var response PhotoPutResponse
+		err := json.Unmarshal(rec.Body.Bytes(), &response)
+		if assert.NoError(t, err) {
+			assert.Equal(t, uint8(6), response.Code)
+		}
+	}
+
 	// returned
 	photoNew := []byte(`{
 	"hash": "should not be modified",

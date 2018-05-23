@@ -93,7 +93,7 @@ func PhotoGetByHash(hash string) (photo Photo, err error) {
 // PhotoDeleteByHash delete photo from DB and datastore
 // we don't care if photo is not found
 func PhotoDeleteByHash(hash string) error {
-	err := core.DB.Unscoped().Where("hash = ?").Delete(Photo{}).Error
+	err := core.DB.Unscoped().Where("hash = ?", hash).Delete(Photo{}).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return err
 	}

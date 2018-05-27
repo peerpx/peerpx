@@ -19,8 +19,8 @@ import (
 	"strconv"
 
 	"github.com/peerpx/peerpx/entities/photo"
+	"github.com/peerpx/peerpx/pkg/image"
 	"github.com/peerpx/peerpx/services/datastore"
-	"github.com/peerpx/peerpx/services/image"
 	"github.com/spf13/viper"
 )
 

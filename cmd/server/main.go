@@ -1,67 +1,60 @@
 package main
 
 import (
-	"os"
+	"os/user"
 
-	"path"
+	"github.com/labstack/echo"
+	"github.com/labstack/echo/middleware"
+	"github.com/peerpx/peerpx/cmd/server/handlers"
+	"github.com/peerpx/peerpx/entities/photo"
+	"github.com/peerpx/peerpx/services/config"
+	"github.com/peerpx/peerpx/services/datastore"
+	"github.com/peerpx/peerpx/services/db"
+	"github.com/peerpx/peerpx/services/log"
+	"github.com/spf13/viper"
+	"github.com/toorop/peerpx/api/controllers"
+	"github.com/toorop/peerpx/api/middlewares"
+
+	"os"
 
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
-	"github.com/labstack/echo"
-	"github.com/labstack/echo/middleware"
-	"github.com/peerpx/peerpx/cmd/server/handlers"
-	"github.com/peerpx/peerpx/cmd/server/middlewares"
-	"github.com/peerpx/peerpx/entities/photo"
-	"github.com/peerpx/peerpx/entities/user"
-	"github.com/peerpx/peerpx/services/config"
-	"github.com/peerpx/peerpx/services/datastore"
-	"github.com/peerpx/peerpx/services/db"
-	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
-	"github.com/toorop/peerpx/api/controllers"
 )
 
 func main() {
 	var err error
 
+	// init logger
+	log.InitBasicLogger(os.Stdout)
+
 	// load config
 	if err = config.InitViper(); err != nil {
-		log.Fatalf("unable to init viper: %v ", err)
+		log.Errorf("viper initialization failed : %v ", err)
+		os.Exit(1)
 	}
 
 	// init logger props
-	// todo set formatter & config
-	log.SetFormatter(&log.TextFormatter{})
-	logDir := viper.GetString("log.dir")
-	if logDir != "" {
-		var fd *os.File
-		fd, err = os.OpenFile(path.Join(logDir, "peerpx.log"), os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0755)
-		if err != nil {
-			log.Fatalf("unable to open log file: %v", err)
-		}
-		defer fd.Close()
-		log.SetOutput(fd)
-	} else {
-		log.SetOutput(os.Stdout)
-	}
 
 	// init DB
 	if err = db.InitDB(); err != nil {
-		log.Fatalf("unable init DB: %v ", err)
+		log.Errorf("DB initialization failed: %v ", err)
+		os.Exit(1)
 	}
 	defer db.DB.Close()
-	log.Info("DB initialized")
+	//log.Info("DB initialized")
 
 	// Migrate the schema
 	// TODO add option (its useless to migrate DB @each run)
 	if err = db.DB.AutoMigrate(&user.User{}, &photo.Photo{}).Error; err != nil {
-		log.Fatalf("unable to migrate DB: %v", err)
+		log.Errorf("unable to migrate DB: %v", err)
+		os.Exit(1)
 	}
 
 	// init datastore
 	if err = datastore.InitFilesystemDatastore(viper.GetString("datastore.path")); err != nil {
-		log.Fatalf("unable to create datastore: %v", err)
+		log.Errorf("datastore initialization failed: %v", err)
+		os.Exit(1)
 	}
 
 	// init
@@ -105,5 +98,5 @@ func main() {
 	// search
 	e.GET("/api/v1/photo/search", controllers.PhotoSearch)
 
-	e.Logger.Fatal(e.Start(":8080"))
+	log.Error(e.Start(":8080"))
 }

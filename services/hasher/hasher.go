@@ -1,4 +1,4 @@
-package core
+package hasher
 
 import (
 	"crypto/sha256"

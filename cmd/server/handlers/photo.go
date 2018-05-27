@@ -1,4 +1,4 @@
-package controllers
+package handlers
 
 import (
 	// jpeg
@@ -7,29 +7,29 @@ import (
 	_ "image/png"
 	"net/http"
 
-	"github.com/labstack/echo"
-
 	"github.com/jinzhu/gorm"
-	"github.com/peerpx/peerpx/core"
-	"github.com/peerpx/peerpx/core/models"
+	"github.com/labstack/echo"
 	log "github.com/sirupsen/logrus"
+	"github.com/toorop/peerpx/core"
 	//"encoding/json"
 	//"fmt"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-
 	"strconv"
 
+	"github.com/peerpx/peerpx/entities/photo"
+	"github.com/peerpx/peerpx/services/datastore"
+	"github.com/peerpx/peerpx/services/image"
 	"github.com/spf13/viper"
 )
 
 // PhotoPostResponse is the response sent by PhotoPost ctrl
 // TODO exif
 type PhotoPostResponse struct {
-	Code       uint8        `json:"code"`
-	Msg        string       `json:"msg"`
-	PhotoProps models.Photo `json:"photoProps"`
+	Code       uint8       `json:"code"`
+	Msg        string      `json:"msg"`
+	PhotoProps photo.Photo `json:"photoProps"`
 }
 
 // PhotoPost handle POST /api/v1.photo request
@@ -41,7 +41,7 @@ func PhotoPost(c echo.Context) error {
 	response := PhotoPostResponse{}
 
 	// init photo
-	photo := models.Photo{}
+	phot := photo.Photo{}
 
 	form, err := c.MultipartForm()
 	if err != nil {
@@ -60,7 +60,7 @@ func PhotoPost(c echo.Context) error {
 
 	// TODO verifier les props requises
 
-	if err := json.Unmarshal([]byte(data[0]), &photo); err != nil {
+	if err := json.Unmarshal([]byte(data[0]), &phot); err != nil {
 		log.Infof("ERR %v", err)
 		response.Code = 2
 		response.Msg = fmt.Sprintf("bad data: '%s' given", data)
@@ -100,63 +100,63 @@ func PhotoPost(c echo.Context) error {
 	}
 
 	// resize && re-encode
-	image, err := core.NewImageFromBytes(photoBytes)
+	img, err := image.NewFromBytes(photoBytes)
 	if err != nil {
 		log.Errorf("%v - controllers.PhotoPost - unable to core.NewImageFromBytes(): %v", c.RealIP(), err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
-	if image.Width() > viper.GetInt("photo.maxWidth") || image.Height() > viper.GetInt("photo.maxHeight") {
-		err = image.ResizeToFit(viper.GetInt("photo.maxWidth"), viper.GetInt("photo.maxHeight"))
-		if err != nil && err != core.ErrImageUpscale {
-			log.Errorf("%v - controllers.PhotoPost - unable to image.ResizeToFit(): %v", c.RealIP(), err)
+	if img.Width() > viper.GetInt("photo.maxWidth") || img.Height() > viper.GetInt("photo.maxHeight") {
+		err = img.ResizeToFit(viper.GetInt("photo.maxWidth"), viper.GetInt("photo.maxHeight"))
+		if err != nil && err != image.ErrUpscale {
+			log.Errorf("%v - controllers.PhotoPost - unable to img.ResizeToFit(): %v", c.RealIP(), err)
 			return c.NoContent(http.StatusInternalServerError)
 		}
 	}
 
 	//
-	photoBytes, err = image.JPEG(100)
+	photoBytes, err = img.JPEG(100)
 	if err != nil {
-		log.Errorf("%v - controllers.PhotoPost - unable to image.JPEG(): %v", c.RealIP(), err)
+		log.Errorf("%v - controllers.PhotoPost - unable to img.JPEG(): %v", c.RealIP(), err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
 	// get hash
-	photo.Hash, err = core.GetHash(photoBytes)
+	phot.Hash, err = core.GetHash(photoBytes)
 	if err != nil {
 		log.Errorf("%v - controllers.PhotoPost - unable to get photo hash: %v", c.RealIP(), err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
 	//  size
-	photo.Width = uint32(image.Width())
-	photo.Height = uint32(image.Height())
+	phot.Width = uint32(img.Width())
+	phot.Height = uint32(img.Height())
 
 	// URL
 	// TODO a supprimer ?
 	if viper.GetBool("http.tlsEnabled") {
-		photo.URL = fmt.Sprintf("https://%s/api/v1/photo/%s/raw", viper.GetString("hostname"), photo.Hash)
+		phot.URL = fmt.Sprintf("https://%s/api/v1/photo/%s/raw", viper.GetString("hostname"), phot.Hash)
 	} else {
-		photo.URL = fmt.Sprintf("http://%s/api/v1/photo/%s/raw", viper.GetString("hostname"), photo.Hash)
+		phot.URL = fmt.Sprintf("http://%s/api/v1/photo/%s/raw", viper.GetString("hostname"), phot.Hash)
 	}
 
 	// save in datastore
-	if err = core.DS.Put(photo.Hash, photoBytes); err != nil {
+	if err = datastore.DS.Put(phot.Hash, photoBytes); err != nil {
 		log.Errorf("%v - controllers.PhotoPost - unable to store photo in datastore: %v", c.RealIP(), err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
 	// create entry in DB
-	if err = photo.Create(); err != nil {
+	if err = phot.Create(); err != nil {
 		log.Errorf("%v - controllers.PhotoPost - unable to photo.Create: %v", c.RealIP(), err)
 		// remove photo from datastore
-		if err = core.DS.Delete(photo.Hash); err != nil {
-			log.Errorf("%v - controllers.PhotoPost - unable to remove photo %s datastore: %v", c.RealIP(), photo.Hash, err)
+		if err = datastore.DS.Delete(phot.Hash); err != nil {
+			log.Errorf("%v - controllers.PhotoPost - unable to remove photo %s datastore: %v", c.RealIP(), phot.Hash, err)
 		}
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
 	// return response
-	response.PhotoProps = photo
+	response.PhotoProps = phot
 	return c.JSON(http.StatusCreated, response)
 }
 
@@ -165,7 +165,7 @@ func PhotoGetProperties(c echo.Context) error {
 	// get ID -> hash
 	hash := c.Param("id")
 	// get photo
-	photo, err := models.PhotoGetByHash(hash)
+	phot, err := photo.GetByHash(hash)
 	if err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return c.NoContent(http.StatusNotFound)
@@ -173,7 +173,7 @@ func PhotoGetProperties(c echo.Context) error {
 		log.Errorf("%v - controllers.PhotoGetProperties - unable to models.PhotoGetByHash(%s): %v", c.RealIP(), hash, err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
-	return c.JSON(http.StatusOK, photo)
+	return c.JSON(http.StatusOK, phot)
 }
 
 // PhotoGet return a photo
@@ -185,9 +185,9 @@ func PhotoGet(c echo.Context) error {
 	_ = size
 
 	// get photo from data store
-	photoBytes, err := core.DS.Get(hash)
+	photoBytes, err := datastore.DS.Get(hash)
 	if err != nil {
-		if err == core.ErrNotFoundInDatastore {
+		if err == datastore.ErrNotFound {
 			return c.NoContent(http.StatusNotFound)
 		}
 		log.Errorf("%v - controllers.PhotoGet - unable to get %s from datastore: %v", c.RealIP(), hash, err)
@@ -198,8 +198,8 @@ func PhotoGet(c echo.Context) error {
 
 // PhotoPutResponse
 type PhotoPutResponse struct {
-	Code  uint8         `json:"code"`
-	Photo *models.Photo `json:"photo"`
+	Code  uint8        `json:"code"`
+	Photo *photo.Photo `json:"photo"`
 }
 
 // PhotoPut alter photo properties
@@ -214,7 +214,7 @@ func PhotoPut(c echo.Context) error {
 	}
 
 	// -> photoNew
-	var photoNew models.Photo
+	var photoNew photo.Photo
 	if err := json.Unmarshal(bodyBytes, &photoNew); err != nil {
 		log.Errorf("%v - controllers.PhotoPut - unmarshall photoNew failed : %v", c.RealIP(), err)
 		return c.NoContent(http.StatusBadRequest)
@@ -231,7 +231,7 @@ func PhotoPut(c echo.Context) error {
 	}
 
 	// get photo props ->  photoOri
-	photoOri, err := models.PhotoGetByHash(photoNew.Hash)
+	photoOri, err := photo.GetByHash(photoNew.Hash)
 	switch err {
 	case gorm.ErrRecordNotFound:
 		return c.NoContent(http.StatusNotFound)
@@ -274,7 +274,7 @@ func PhotoPut(c echo.Context) error {
 func PhotoDel(c echo.Context) error {
 	// get hash
 	hash := c.Param("id")
-	if err := models.PhotoDeleteByHash(hash); err != nil {
+	if err := photo.DeleteByHash(hash); err != nil {
 		log.Errorf("%v - controllers.PhotoGet - unable to delete photo %s: %v", c.RealIP(), hash, err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
@@ -313,20 +313,20 @@ func PhotoResize(c echo.Context) error {
 		return c.NoContent(http.StatusBadRequest)
 	}
 
-	image, err := core.NewImageFromDataStore(c.Param("id"))
+	img, err := image.NewFromDataStore(c.Param("id"))
 	if err != nil {
 		log.Errorf("%v - controllers.PhotoResize - unable to core.NewImageFromDataStore(%s): %v", c.RealIP(), c.Param("id"), err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	if err = image.Resize(width, height); err != nil {
-		log.Errorf("%v - controllers.PhotoResize - unable to image.ResizeToFit(%d, %d): %v", c.RealIP(), width, height, err)
+	if err = img.Resize(width, height); err != nil {
+		log.Errorf("%v - controllers.PhotoResize - unable to img.ResizeToFit(%d, %d): %v", c.RealIP(), width, height, err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	b, err := image.JPEG(100)
+	b, err := img.JPEG(100)
 	if err != nil {
-		log.Errorf("%v - controllers.PhotoResize - unable to image.JPEG(): %v", c.RealIP(), err)
+		log.Errorf("%v - controllers.PhotoResize - unable to img.JPEG(): %v", c.RealIP(), err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 	return c.Blob(http.StatusOK, "image/jpeg", b)
@@ -337,13 +337,13 @@ type PhotoSearchResponse struct {
 	Total  int
 	Limit  int
 	Offset int
-	Data   []models.Photo
+	Data   []photo.Photo
 }
 
 // PhotoSearch return an array of photos regarding the optionnals search params (TMP)
 func PhotoSearch(c echo.Context) error {
 	//TODO: take account of optional params
-	photos, err := models.PhotoList()
+	photos, err := photo.List()
 	if err != nil {
 		log.Errorf("%v - controllers.PhotoSearch - unable to list photos: %v", c.RealIP(), err)
 		return c.NoContent(http.StatusInternalServerError)

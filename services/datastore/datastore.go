@@ -1,4 +1,4 @@
-package core
+package datastore
 
 import "errors"
 
@@ -17,5 +17,5 @@ type Datastore interface {
 	Delete(key string) error
 }
 
-// ErrNotFoundInDatastore is returned by Get, Delete if key is not found
-var ErrNotFoundInDatastore = errors.New("datastore: key not found")
+// ErrNotFound is returned by Get, Delete if key is not found
+var ErrNotFound = errors.New("datastore: key not found")

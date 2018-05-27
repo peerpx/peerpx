@@ -1,11 +1,13 @@
-package models
+package photo
 
 import (
 	"errors"
 	"time"
 
 	"github.com/jinzhu/gorm"
-	"github.com/peerpx/peerpx/core"
+	"github.com/peerpx/peerpx/entities/user"
+	"github.com/peerpx/peerpx/services/datastore"
+	"github.com/peerpx/peerpx/services/db"
 )
 
 // Category temp definition
@@ -76,37 +78,37 @@ type Photo struct {
 	Nsfw         bool
 	LicenceType  Licence
 	URL          string
-	User         User
+	User         user.User
 	// Todo remove
 	Comments []Comment `gorm:"-" json:"-"`
 	Tags     []Tag     `gorm:"-"`
 }
 
-// PhotoGetByHash return photo from its hash
-func PhotoGetByHash(hash string) (photo Photo, err error) {
-	err = core.DB.Find(&photo).Where("hash = ?", hash).Error
+// GetByHash return photo from its hash
+func GetByHash(hash string) (photo Photo, err error) {
+	err = db.DB.Find(&photo).Where("hash = ?", hash).Error
 	// todo load user
 	// todo load tags ?
 	return
 }
 
-// PhotoDeleteByHash delete photo from DB and datastore
+// DeleteByHash delete photo from DB and datastore
 // we don't care if photo is not found
-func PhotoDeleteByHash(hash string) error {
-	err := core.DB.Unscoped().Where("hash = ?", hash).Delete(Photo{}).Error
+func DeleteByHash(hash string) error {
+	err := db.DB.Unscoped().Where("hash = ?", hash).Delete(Photo{}).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return err
 	}
-	err = core.DS.Delete(hash)
-	if err != nil && err != core.ErrNotFoundInDatastore {
+	err = datastore.DS.Delete(hash)
+	if err != nil && err != datastore.ErrNotFound {
 		return err
 	}
 	return nil
 }
 
-// PhotoList list photos regarding optional args
-func PhotoList(args ...interface{}) (photos []Photo, err error) {
-	err = core.DB.Find(&photos).Error
+// List list photos regarding optional args
+func List(args ...interface{}) (photos []Photo, err error) {
+	err = db.DB.Find(&photos).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return photos, err
 	}
@@ -115,7 +117,7 @@ func PhotoList(args ...interface{}) (photos []Photo, err error) {
 
 // Create save new photo in DB
 func (p *Photo) Create() error {
-	return core.DB.Create(p).Error
+	return db.DB.Create(p).Error
 }
 
 // Update update photo in DB
@@ -123,10 +125,10 @@ func (p *Photo) Update() error {
 	if p.ID == 0 {
 		return errors.New("photo is not recoded in DB yet, i can't update it")
 	}
-	return core.DB.Save(p).Error
+	return db.DB.Save(p).Error
 }
 
-// validate check if photo properties are valid
+// Validate check if photo properties are valid
 // 0: ok
 // 1: Name is too long (max length: 255)
 // 2: Camera is too long (max length: 255)

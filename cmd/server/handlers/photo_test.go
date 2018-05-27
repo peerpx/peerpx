@@ -1,4 +1,4 @@
-package controllers
+package handlers
 
 import (
 	"io/ioutil"
@@ -17,7 +17,8 @@ import (
 
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
-	"github.com/peerpx/peerpx/core"
+	"github.com/peerpx/peerpx/services/datastore"
+	"github.com/peerpx/peerpx/services/db"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/DATA-DOG/go-sqlmock.v1"
@@ -35,11 +36,11 @@ func TestPhotoPost(t *testing.T) {
 	viper.Set("photo.maxHeight", 100)
 
 	//  init mocked datastore
-	core.DS = core.NewDatastoreMocked([]byte{}, nil)
+	datastore.DS = datastore.NewMocked([]byte{}, nil)
 
 	// mocked DB
-	mock := core.InitMockedDB("sqlmock_db_0")
-	defer core.DB.Close()
+	mock := db.InitMockedDB("sqlmock_db_0")
+	defer db.DB.Close()
 	mock.ExpectExec("^INSERT INTO \"photos\"(.*)").WillReturnResult(sqlmock.NewResult(1, 1))
 
 	data := `{"Name":"ma super photo", "Description":" ma description"}`
@@ -49,7 +50,7 @@ func TestPhotoPost(t *testing.T) {
 
 	handleErr(writer.WriteField("data", data))
 
-	file, err := os.Open("../../etc/samples/photos/robin.jpg")
+	file, err := os.Open("../../../etc/samples/photos/robin.jpg")
 	handleErr(err)
 	defer file.Close()
 
@@ -85,7 +86,7 @@ func TestPhotoPostNotAPhoto(t *testing.T) {
 
 	handleErr(writer.WriteField("data", data))
 
-	file, err := os.Open("../../etc/samples/photos/not-a-photo.jpg")
+	file, err := os.Open("../../../etc/samples/photos/not-a-photo.jpg")
 	handleErr(err)
 	defer file.Close()
 
@@ -115,8 +116,8 @@ func TestPhotoPostNotAPhoto(t *testing.T) {
 
 func TestPhotoGetPropertiesByHash(t *testing.T) {
 	// mocked DB
-	mock := core.InitMockedDB("sqlmock_db_1")
-	defer core.DB.Close()
+	mock := db.InitMockedDB("sqlmock_db_1")
+	defer db.DB.Close()
 
 	e := echo.New()
 	req := httptest.NewRequest(echo.GET, "/", nil)
@@ -134,8 +135,8 @@ func TestPhotoGetPropertiesByHash(t *testing.T) {
 
 func TestPhotoGetPropertiesByHashNotFound(t *testing.T) {
 	// mocked DB
-	mock := core.InitMockedDB("sqlmock_db_2")
-	defer core.DB.Close()
+	mock := db.InitMockedDB("sqlmock_db_2")
+	defer db.DB.Close()
 
 	e := echo.New()
 	req := httptest.NewRequest(echo.GET, "/", nil)
@@ -151,7 +152,7 @@ func TestPhotoGetPropertiesByHashNotFound(t *testing.T) {
 
 func TestPhotoGet(t *testing.T) {
 	//  init mocked datastore
-	core.DS = core.NewDatastoreMocked([]byte{1, 2, 3}, nil)
+	datastore.DS = datastore.NewMocked([]byte{1, 2, 3}, nil)
 
 	e := echo.New()
 	req := httptest.NewRequest(echo.GET, "/", nil)
@@ -169,7 +170,7 @@ func TestPhotoGet(t *testing.T) {
 
 func TestPhotoGetNotfound(t *testing.T) {
 	//  init mocked datastore
-	core.DS = core.NewDatastoreMocked(nil, core.ErrNotFoundInDatastore)
+	datastore.DS = datastore.NewMocked(nil, datastore.ErrNotFound)
 
 	e := echo.New()
 	req := httptest.NewRequest(echo.GET, "/", nil)
@@ -182,14 +183,15 @@ func TestPhotoGetNotfound(t *testing.T) {
 	}
 }
 
+// TODO ?
 func TestPhotoResize(t *testing.T) {
 }
 
 func TestPhotoDel(t *testing.T) {
-	mock := core.InitMockedDB("sqlmock_db_3")
+	mock := db.InitMockedDB("sqlmock_db_3")
 	mock.ExpectExec("DELETE FROM \"photos\"(.*)").WillReturnResult(sqlmock.NewResult(1, 1))
-	defer core.DB.Close()
-	core.DS = core.NewDatastoreMocked(nil, nil)
+	defer db.DB.Close()
+	datastore.DS = datastore.NewMocked(nil, nil)
 	e := echo.New()
 	req := httptest.NewRequest(echo.DELETE, "/", nil)
 	rec := httptest.NewRecorder()
@@ -202,8 +204,8 @@ func TestPhotoDel(t *testing.T) {
 
 func TestPhotoSearchNoArgs(t *testing.T) {
 	// mocked DB
-	mock := core.InitMockedDB("sqlmock_db_4")
-	defer core.DB.Close()
+	mock := db.InitMockedDB("sqlmock_db_4")
+	defer db.DB.Close()
 
 	e := echo.New()
 	req := httptest.NewRequest(echo.GET, "/", nil)
@@ -221,8 +223,8 @@ func TestPhotoSearchNoArgs(t *testing.T) {
 
 func TestPhotoPut(t *testing.T) {
 	// mocked DB
-	mock := core.InitMockedDB("sqlmock_db_5")
-	defer core.DB.Close()
+	mock := db.InitMockedDB("sqlmock_db_5")
+	defer db.DB.Close()
 	e := echo.New()
 	rec := httptest.NewRecorder()
 

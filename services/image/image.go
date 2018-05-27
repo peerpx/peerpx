@@ -1,4 +1,4 @@
-package core
+package image
 
 import (
 	"bytes"
@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 
 	"github.com/disintegration/gift"
+	"github.com/peerpx/peerpx/services/datastore"
 )
 
 // Image is used for image manipulation
@@ -19,23 +20,23 @@ type Image struct {
 }
 
 var (
-	ErrImageUpscale = errors.New("upscaling is not allowed")
+	ErrUpscale = errors.New("upscaling is not allowed")
 )
 
-// NewImageFromDataStore return an instantiated Image fetched from datastore
-func NewImageFromDataStore(hash string) (image *Image, err error) {
+// NewFromDataStore return an instantiated Image fetched from datastore
+func NewFromDataStore(hash string) (img *Image, err error) {
 	var imageBytes []byte
-	image = new(Image)
-	imageBytes, err = DS.Get(hash)
+	img = new(Image)
+	imageBytes, err = datastore.DS.Get(hash)
 	if err != nil {
 		return
 	}
-	image.image, image.format, err = imageStd.Decode(bytes.NewBuffer(imageBytes))
+	img.image, img.format, err = imageStd.Decode(bytes.NewBuffer(imageBytes))
 	return
 }
 
-// NewImageFromBytes returns image from bytes slice
-func NewImageFromBytes(b []byte) (image *Image, err error) {
+// NewFromBytes returns image from bytes slice
+func NewFromBytes(b []byte) (image *Image, err error) {
 	image = new(Image)
 	image.image, image.format, err = imageStd.Decode(bytes.NewBuffer(b))
 	return
@@ -66,7 +67,7 @@ func (i *Image) JPEG(quality int) ([]byte, error) {
 // Warning: upscaling not allowed
 func (i *Image) Resize(width, height int) error {
 	if width > i.Width() || height > i.Height() {
-		return ErrImageUpscale
+		return ErrUpscale
 	}
 	g := gift.New(
 		gift.Resize(width, height, gift.LanczosResampling),
@@ -81,7 +82,7 @@ func (i *Image) Resize(width, height int) error {
 // Warning: upscaling not allowed
 func (i *Image) ResizeToFit(width, height int) error {
 	if width > i.Width() || height > i.Height() {
-		return ErrImageUpscale
+		return ErrUpscale
 	}
 	g := gift.New(
 		gift.ResizeToFit(width, height, gift.LanczosResampling),

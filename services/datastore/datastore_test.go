@@ -1,4 +1,4 @@
-package core
+package datastore
 
 import (
 	"testing"
@@ -9,12 +9,12 @@ import (
 var data = []byte("hello peerpx")
 var key = "peerpxKey"
 
-func TestDatastoreFile(t *testing.T) {
+func TestNewFs(t *testing.T) {
 	// not a valid path
-	_, err := NewDatastoreFs("/foo")
+	_, err := NewFs("/foo")
 	assert.Error(t, err)
 	// valid path
-	ds, err := NewDatastoreFs("/tmp")
+	ds, err := NewFs("/tmp")
 	if assert.NoError(t, err) {
 		// Put
 		err = ds.Put(key, data)
@@ -29,7 +29,6 @@ func TestDatastoreFile(t *testing.T) {
 		err = ds.Delete(key)
 		assert.NoError(t, err)
 		_, err = ds.Get(key)
-		assert.Equal(t, ErrNotFoundInDatastore, err)
+		assert.Equal(t, ErrNotFound, err)
 	}
-
 }

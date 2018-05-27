@@ -4,18 +4,18 @@ version: '2'
 tasks:
   build:
     cmds:
-      - go build -o ../etc/dist/server
+      - go build -o dist/server
 
   run:
     deps: [build]
-    dir: ../etc/dist
+    dir: dist
     cmds:
       - ./server
 
   deploy:
     deps: [build]
     cmds:
-      - rsync -arv ../etc/dist/server peerpx@peerpx.com:/home/peerpx/
+      - rsync -arv dist/server peerpx@peerpx.com:/home/peerpx/
 
   test:
     cmds:

@@ -10,19 +10,23 @@ import (
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
-	"github.com/peerpx/peerpx/api/controllers"
-	"github.com/peerpx/peerpx/api/middlewares"
-	"github.com/peerpx/peerpx/core"
-	"github.com/peerpx/peerpx/core/models"
+	"github.com/peerpx/peerpx/cmd/server/handlers"
+	"github.com/peerpx/peerpx/cmd/server/middlewares"
+	"github.com/peerpx/peerpx/entities/photo"
+	"github.com/peerpx/peerpx/entities/user"
+	"github.com/peerpx/peerpx/services/config"
+	"github.com/peerpx/peerpx/services/datastore"
+	"github.com/peerpx/peerpx/services/db"
 	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
+	"github.com/toorop/peerpx/api/controllers"
 )
 
 func main() {
 	var err error
 
 	// load config
-	if err = core.InitViper(); err != nil {
+	if err = config.InitViper(); err != nil {
 		log.Fatalf("unable to init viper: %v ", err)
 	}
 
@@ -43,20 +47,20 @@ func main() {
 	}
 
 	// init DB
-	if err = core.InitDB(); err != nil {
+	if err = db.InitDB(); err != nil {
 		log.Fatalf("unable init DB: %v ", err)
 	}
-	defer core.DB.Close()
+	defer db.DB.Close()
 	log.Info("DB initialized")
 
 	// Migrate the schema
 	// TODO add option (its useless to migrate DB @each run)
-	if err = core.DB.AutoMigrate(&models.User{}, &models.Photo{}).Error; err != nil {
+	if err = db.DB.AutoMigrate(&user.User{}, &photo.Photo{}).Error; err != nil {
 		log.Fatalf("unable to migrate DB: %v", err)
 	}
 
 	// init datastore
-	core.DS, err = core.NewDatastoreFs(viper.GetString("datastore.path"))
+	datastore.DS, err = datastore.NewFs(viper.GetString("datastore.path"))
 	if err != nil {
 		log.Fatalf("unable to create datastore: %v", err)
 	}
@@ -72,7 +76,7 @@ func main() {
 	// photo
 
 	// upload
-	e.POST("/api/v1/photo", controllers.PhotoPost, middlewares.AuthRequired())
+	e.POST("/api/v1/photo", handlers.PhotoPost, middlewares.AuthRequired())
 
 	// get photo
 	// size:
@@ -94,7 +98,7 @@ func main() {
 	e.GET("/api/v1/photo/:id/properties", controllers.PhotoGetProperties)
 
 	// update photo properties
-	e.PUT("/api/v1/photo", controllers.PhotoPut, middlewares.AuthRequired())
+	e.PUT("/api/v1/photo", handlers.PhotoPut, middlewares.AuthRequired())
 
 	// delete photo
 	e.DELETE("/api/v1/photo/:id", controllers.PhotoDel, middlewares.AuthRequired())

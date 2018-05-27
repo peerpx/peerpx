@@ -1,4 +1,4 @@
-package core
+package hasher
 
 import (
 	"io/ioutil"
@@ -9,7 +9,7 @@ import (
 
 func TestHasher(t *testing.T) {
 	// get photo
-	photoBytes, err := ioutil.ReadFile("../etc/samples/photos/robin.jpg")
+	photoBytes, err := ioutil.ReadFile("../../etc/samples/photos/robin.jpg")
 	if err != nil {
 		panic(err)
 	}

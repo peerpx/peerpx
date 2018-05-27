@@ -6,29 +6,45 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var data = []byte("hello peerpx")
+var value = []byte("hello peerpx")
 var key = "peerpxKey"
 
-func TestNewFs(t *testing.T) {
+func TestInitFilesystemDatastore(t *testing.T) {
 	// not a valid path
-	_, err := NewFs("/foo")
+	err := InitFilesystemDatastore("/foo")
 	assert.Error(t, err)
 	// valid path
-	ds, err := NewFs("/tmp")
+	err = InitFilesystemDatastore("/tmp")
 	if assert.NoError(t, err) {
 		// Put
-		err = ds.Put(key, data)
+		err = Put(key, value)
 		assert.NoError(t, err)
 
 		// Get
-		rData, err := ds.Get(key)
+		rData, err := Get(key)
 		assert.NoError(t, err)
-		assert.Equal(t, string(data), string(rData))
+		assert.Equal(t, string(value), string(rData))
 
 		// Delete
-		err = ds.Delete(key)
+		err = Delete(key)
 		assert.NoError(t, err)
-		_, err = ds.Get(key)
+		_, err = Get(key)
 		assert.Equal(t, ErrNotFound, err)
 	}
+}
+
+func TestInitMokedDatastore(t *testing.T) {
+	// it useless to test err in this case
+	InitMokedDatastore(value, nil)
+	v, err := Get("key")
+	if assert.NoError(t, err) {
+		assert.Equal(t, value, v)
+	}
+
+	// test error
+	InitMokedDatastore(value, ErrNotFound)
+	_, err = Get(key)
+	assert.Error(t, err)
+	assert.EqualError(t, ErrNotFound, err.Error())
+
 }

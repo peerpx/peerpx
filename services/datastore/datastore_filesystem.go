@@ -27,20 +27,21 @@ type Fs struct {
 	basePath string
 }
 
-// NewFs return a file system datastore
-func NewFs(basePath string) (datastore Datastore, err error) {
+// InitFilesystemDatastore initialize datastore as file system datastore
+func InitFilesystemDatastore(basePath string) error {
 	finfo, err := os.Stat(basePath)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	if !finfo.IsDir() {
-		return nil, fmt.Errorf("%s is not a directory", basePath)
+		return fmt.Errorf("%s is not a directory", basePath)
 	}
-	return &Fs{basePath: basePath}, nil
+	ds = &Fs{basePath: basePath}
+	return nil
 }
 
-// Put implements datastore.Put
-func (d *Fs) Put(key string, value []byte) error {
+// Put implements datastore.put
+func (d *Fs) put(key string, value []byte) error {
 	basePath := d.getPath(key)
 	// path exists ? no -> create it
 	_, err := os.Stat(basePath)
@@ -57,8 +58,8 @@ func (d *Fs) Put(key string, value []byte) error {
 	return ioutil.WriteFile(filepath.Join(basePath, key), value, 0644)
 }
 
-// Get implements datastore.Get
-func (d *Fs) Get(key string) ([]byte, error) {
+// get implements datastore.Get
+func (d *Fs) get(key string) ([]byte, error) {
 	data, err := ioutil.ReadFile(filepath.Join(d.getPath(key), key))
 	if os.IsNotExist(err) {
 		return nil, ErrNotFound
@@ -66,8 +67,8 @@ func (d *Fs) Get(key string) ([]byte, error) {
 	return data, err
 }
 
-// Delete implements datastore.Delete
-func (d *Fs) Delete(key string) error {
+// delete implements datastore.Delete
+func (d *Fs) delete(key string) error {
 	err := os.Remove(filepath.Join(d.getPath(key), key))
 	if os.IsNotExist(err) {
 		return ErrNotFound

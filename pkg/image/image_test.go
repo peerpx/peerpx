@@ -1,64 +1,45 @@
 package image
 
 import (
+	"bytes"
 	"io/ioutil"
 	"testing"
 
-	"github.com/peerpx/peerpx/services/datastore"
 	"github.com/stretchr/testify/assert"
 )
 
-func getImage() *Image {
+func getImage() []byte {
 	photoBytes, err := ioutil.ReadFile("../../etc/samples/photos/robin.jpg")
 	if err != nil {
 		panic(err)
 	}
-	//  init mocked datastore
-	datastore.DS = datastore.NewMocked(photoBytes, nil)
-
-	// get image from DS
-	img, err := NewFromDataStore("fakeHAsh")
-	if err != nil {
-		panic(err)
-	}
-	return img
+	return photoBytes
 }
 
-func TestNewFromDataStore(t *testing.T) {
-	photoBytes, err := ioutil.ReadFile("../../etc/samples/photos/robin.jpg")
-	if err != nil {
-		panic(err)
-	}
-	//  init mocked datastore
-	datastore.DS = datastore.NewMocked(photoBytes, nil)
-	// get image from DS
-	img, err := NewFromDataStore("fakeHAsh")
+func TestImage(t *testing.T) {
+	img, err := New(bytes.NewBuffer(getImage()))
 	if assert.NoError(t, err) {
 		assert.Equal(t, 1000, img.Width())
 		assert.Equal(t, 1270, img.Height())
-	}
-}
 
-func TestResize(t *testing.T) {
-	img := getImage()
-	err := img.Resize(500, 200)
-	if assert.NoError(t, err) {
-		assert.Equal(t, 500, img.Width())
-		assert.Equal(t, 200, img.Height())
-	}
-	// upscale (not allowed)
-	err = img.Resize(600, 1000)
-	assert.Equal(t, ErrUpscale, err)
-}
+		// resize
+		err = img.Resize(500, 200)
+		if assert.NoError(t, err) {
+			assert.Equal(t, 500, img.Width())
+			assert.Equal(t, 200, img.Height())
+		}
+		// upscale (not allowed)
+		err = img.Resize(600, 1000)
+		assert.Equal(t, ErrUpscaleNotAllowed, err)
 
-func TestResizeToFit(t *testing.T) {
-	img := getImage()
-	err := img.ResizeToFit(500, 500)
-	if assert.NoError(t, err) {
-		assert.Equal(t, 394, img.Width())
-		assert.Equal(t, 500, img.Height())
+		// resize to fit
+		err := img.ResizeToFit(250, 200)
+		if assert.NoError(t, err) {
+			assert.Equal(t, 250, img.Width())
+			assert.Equal(t, 100, img.Height())
+		}
+		// upscale (not allowed)
+		err = img.ResizeToFit(600, 1000)
+		assert.Equal(t, ErrUpscaleNotAllowed, err)
 	}
-	// upscale (not allowed)
-	err = img.ResizeToFit(600, 1000)
-	assert.Equal(t, ErrUpscale, err)
 }

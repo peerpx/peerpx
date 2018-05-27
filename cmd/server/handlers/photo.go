@@ -18,6 +18,8 @@ import (
 	"io/ioutil"
 	"strconv"
 
+	"bytes"
+
 	"github.com/peerpx/peerpx/entities/photo"
 	"github.com/peerpx/peerpx/pkg/image"
 	"github.com/peerpx/peerpx/services/datastore"
@@ -107,7 +109,7 @@ func PhotoPost(c echo.Context) error {
 	}
 	if img.Width() > viper.GetInt("photo.maxWidth") || img.Height() > viper.GetInt("photo.maxHeight") {
 		err = img.ResizeToFit(viper.GetInt("photo.maxWidth"), viper.GetInt("photo.maxHeight"))
-		if err != nil && err != image.ErrUpscale {
+		if err != nil && err != image.ErrUpscaleNotAllowed {
 			log.Errorf("%v - controllers.PhotoPost - unable to img.ResizeToFit(): %v", c.RealIP(), err)
 			return c.NoContent(http.StatusInternalServerError)
 		}
@@ -140,7 +142,7 @@ func PhotoPost(c echo.Context) error {
 	}
 
 	// save in datastore
-	if err = datastore.DS.Put(phot.Hash, photoBytes); err != nil {
+	if err = datastore.Put(phot.Hash, photoBytes); err != nil {
 		log.Errorf("%v - controllers.PhotoPost - unable to store photo in datastore: %v", c.RealIP(), err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
@@ -149,7 +151,7 @@ func PhotoPost(c echo.Context) error {
 	if err = phot.Create(); err != nil {
 		log.Errorf("%v - controllers.PhotoPost - unable to photo.Create: %v", c.RealIP(), err)
 		// remove photo from datastore
-		if err = datastore.DS.Delete(phot.Hash); err != nil {
+		if err = datastore.Delete(phot.Hash); err != nil {
 			log.Errorf("%v - controllers.PhotoPost - unable to remove photo %s datastore: %v", c.RealIP(), phot.Hash, err)
 		}
 		return c.NoContent(http.StatusInternalServerError)
@@ -185,7 +187,7 @@ func PhotoGet(c echo.Context) error {
 	_ = size
 
 	// get photo from data store
-	photoBytes, err := datastore.DS.Get(hash)
+	photoBytes, err := datastore.Get(hash)
 	if err != nil {
 		if err == datastore.ErrNotFound {
 			return c.NoContent(http.StatusNotFound)
@@ -313,7 +315,13 @@ func PhotoResize(c echo.Context) error {
 		return c.NoContent(http.StatusBadRequest)
 	}
 
-	img, err := image.NewFromDataStore(c.Param("id"))
+	imgBytes, err := datastore.Get(c.Param("id"))
+	if err != nil {
+		log.Errorf("%v - controllers.PhotoResize - datastore.get(%s) failed: %v", c.RealIP(), c.Param("id"), err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	img, err := image.New(bytes.NewBuffer(imgBytes))
 	if err != nil {
 		log.Errorf("%v - controllers.PhotoResize - unable to core.NewImageFromDataStore(%s): %v", c.RealIP(), c.Param("id"), err)
 		return c.NoContent(http.StatusInternalServerError)

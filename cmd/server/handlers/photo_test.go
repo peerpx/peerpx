@@ -36,7 +36,7 @@ func TestPhotoPost(t *testing.T) {
 	viper.Set("photo.maxHeight", 100)
 
 	//  init mocked datastore
-	datastore.DS = datastore.NewMocked([]byte{}, nil)
+	datastore.InitMokedDatastore([]byte{}, nil)
 
 	// mocked DB
 	mock := db.InitMockedDB("sqlmock_db_0")
@@ -152,7 +152,7 @@ func TestPhotoGetPropertiesByHashNotFound(t *testing.T) {
 
 func TestPhotoGet(t *testing.T) {
 	//  init mocked datastore
-	datastore.DS = datastore.NewMocked([]byte{1, 2, 3}, nil)
+	datastore.InitMokedDatastore([]byte{1, 2, 3}, nil)
 
 	e := echo.New()
 	req := httptest.NewRequest(echo.GET, "/", nil)
@@ -170,7 +170,7 @@ func TestPhotoGet(t *testing.T) {
 
 func TestPhotoGetNotfound(t *testing.T) {
 	//  init mocked datastore
-	datastore.DS = datastore.NewMocked(nil, datastore.ErrNotFound)
+	datastore.InitMokedDatastore(nil, datastore.ErrNotFound)
 
 	e := echo.New()
 	req := httptest.NewRequest(echo.GET, "/", nil)
@@ -191,7 +191,7 @@ func TestPhotoDel(t *testing.T) {
 	mock := db.InitMockedDB("sqlmock_db_3")
 	mock.ExpectExec("DELETE FROM \"photos\"(.*)").WillReturnResult(sqlmock.NewResult(1, 1))
 	defer db.DB.Close()
-	datastore.DS = datastore.NewMocked(nil, nil)
+	datastore.InitMokedDatastore(nil, nil)
 	e := echo.New()
 	req := httptest.NewRequest(echo.DELETE, "/", nil)
 	rec := httptest.NewRecorder()

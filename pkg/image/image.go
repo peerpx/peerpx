@@ -9,8 +9,9 @@ import (
 	_ "image/png"
 	"io/ioutil"
 
+	"io"
+
 	"github.com/disintegration/gift"
-	"github.com/peerpx/peerpx/services/datastore"
 )
 
 // Image is used for image manipulation
@@ -20,26 +21,19 @@ type Image struct {
 }
 
 var (
-	ErrUpscale = errors.New("upscaling is not allowed")
+	ErrUpscaleNotAllowed = errors.New("upscaling is not allowed")
 )
 
-// NewFromDataStore return an instantiated Image fetched from datastore
-func NewFromDataStore(hash string) (img *Image, err error) {
-	var imageBytes []byte
-	img = new(Image)
-	imageBytes, err = datastore.DS.Get(hash)
-	if err != nil {
-		return
-	}
-	img.image, img.format, err = imageStd.Decode(bytes.NewBuffer(imageBytes))
+// New returns image from io.Reader
+func New(r io.Reader) (image *Image, err error) {
+	image = new(Image)
+	image.image, image.format, err = imageStd.Decode(r)
 	return
 }
 
 // NewFromBytes returns image from bytes slice
 func NewFromBytes(b []byte) (image *Image, err error) {
-	image = new(Image)
-	image.image, image.format, err = imageStd.Decode(bytes.NewBuffer(b))
-	return
+	return New(bytes.NewBuffer(b))
 }
 
 // Width returns image width
@@ -67,7 +61,7 @@ func (i *Image) JPEG(quality int) ([]byte, error) {
 // Warning: upscaling not allowed
 func (i *Image) Resize(width, height int) error {
 	if width > i.Width() || height > i.Height() {
-		return ErrUpscale
+		return ErrUpscaleNotAllowed
 	}
 	g := gift.New(
 		gift.Resize(width, height, gift.LanczosResampling),
@@ -82,7 +76,7 @@ func (i *Image) Resize(width, height int) error {
 // Warning: upscaling not allowed
 func (i *Image) ResizeToFit(width, height int) error {
 	if width > i.Width() || height > i.Height() {
-		return ErrUpscale
+		return ErrUpscaleNotAllowed
 	}
 	g := gift.New(
 		gift.ResizeToFit(width, height, gift.LanczosResampling),

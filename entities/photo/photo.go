@@ -99,7 +99,7 @@ func DeleteByHash(hash string) error {
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return err
 	}
-	err = datastore.DS.Delete(hash)
+	err = datastore.Delete(hash)
 	if err != nil && err != datastore.ErrNotFound {
 		return err
 	}

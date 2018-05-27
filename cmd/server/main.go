@@ -60,8 +60,7 @@ func main() {
 	}
 
 	// init datastore
-	datastore.DS, err = datastore.NewFs(viper.GetString("datastore.path"))
-	if err != nil {
+	if err = datastore.InitFilesystemDatastore(viper.GetString("datastore.path")); err != nil {
 		log.Fatalf("unable to create datastore: %v", err)
 	}
 

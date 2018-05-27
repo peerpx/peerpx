@@ -9,6 +9,13 @@ import (
 var value = []byte("hello peerpx")
 var key = "peerpxKey"
 
+func TestErrNotInitialized(t *testing.T) {
+	err := Put(key, value)
+	if assert.Error(t, err) {
+		assert.EqualError(t, ErrNotInitialized, err.Error())
+	}
+}
+
 func TestInitFilesystemDatastore(t *testing.T) {
 	// not a valid path
 	err := InitFilesystemDatastore("/foo")

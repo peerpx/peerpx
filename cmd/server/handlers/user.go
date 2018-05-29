@@ -1,13 +1,14 @@
-package controllers
+package handlers
 
 import (
-	"github.com/labstack/echo"
-	"io/ioutil"
-	"github.com/labstack/gommon/log"
-	"net/http"
-	"github.com/peerpx/peerpx/core/models"
 	"encoding/json"
+	"io/ioutil"
+	"net/http"
 	"net/mail"
+
+	"github.com/labstack/echo"
+	"github.com/peerpx/peerpx/entities/user"
+	"github.com/peerpx/peerpx/services/log"
 )
 
 // UserPostRequest is request struct for adding user
@@ -15,7 +16,7 @@ type UserPostRequest struct {
 	Username  string
 	Firstname string
 	Lastname  string
-	Gender    models.Gender
+	Gender    user.Gender
 	Email     string
 	Address   string
 	City      string
@@ -30,8 +31,8 @@ type UserPostRequest struct {
 // UserPostResponse is response on adding user request
 type UserPostResponse struct {
 	Code uint8
-	Msg string
-	User models.User
+	Msg  string
+	User user.User
 }
 
 // UserPost handle POST /api/v1/user request
@@ -67,24 +68,24 @@ func UserPost(c echo.Context) error {
 	}
 
 	// creating user for saving in DB
-	user := models.User{
-		Username: userpost.Username,
+	user := user.User{
+		Username:  userpost.Username,
 		Firstname: userpost.Firstname,
-		Lastname: userpost.Lastname,
-		Gender: userpost.Gender,
-		Email: userpost.Email,
-		Address: userpost.Address,
-		City: userpost.City,
-		State: userpost.State,
-		Zip: userpost.Zip,
-		Country: userpost.Country,
-		About: userpost.About,
-		Locale: userpost.Locale,
-		ShowNsfw: userpost.ShowNsfw,
-		UserURL: "",
-		Admin: false,
+		Lastname:  userpost.Lastname,
+		Gender:    userpost.Gender,
+		Email:     userpost.Email,
+		Address:   userpost.Address,
+		City:      userpost.City,
+		State:     userpost.State,
+		Zip:       userpost.Zip,
+		Country:   userpost.Country,
+		About:     userpost.About,
+		Locale:    userpost.Locale,
+		ShowNsfw:  userpost.ShowNsfw,
+		UserURL:   "",
+		Admin:     false,
 		AvatarURL: "",
-		APIKey: "",
+		APIKey:    "",
 	}
 
 	if err := user.Create(); err != nil {

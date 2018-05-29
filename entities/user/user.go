@@ -1,9 +1,10 @@
 package user
 
 import (
-	"github.com/jinzhu/gorm"
-	"github.com/peerpx/peerpx/core"
 	"errors"
+
+	"github.com/jinzhu/gorm"
+	"github.com/peerpx/peerpx/services/db"
 )
 
 // User represent an user
@@ -42,19 +43,19 @@ const (
 
 // UserGetByID return user by its ID
 func UserGetByID(id int) (user User, err error) {
-	err = core.DB.Find(&user).Where("id = ?", id).Error
+	err = db.DB.Find(&user).Where("id = ?", id).Error
 	return
 }
 
 // UserGetByUsername return user by its ID
 func UserGetByUsername(username string) (user User, err error) {
-	err = core.DB.Find(&user).Where("username = ?", username).Error
+	err = db.DB.Find(&user).Where("username = ?", username).Error
 	return
 }
 
 // Create save new user in DB
 func (u *User) Create() error {
-	return core.DB.Create(u).Error
+	return db.DB.Create(u).Error
 }
 
 // Update update user in DB
@@ -62,5 +63,5 @@ func (u *User) Update() error {
 	if u.ID == 0 {
 		return errors.New("user unknown in database")
 	}
-	return core.DB.Update(u).Error
+	return db.DB.Update(u).Error
 }

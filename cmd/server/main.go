@@ -12,7 +12,6 @@ import (
 	"github.com/peerpx/peerpx/services/db"
 	"github.com/peerpx/peerpx/services/log"
 	"github.com/spf13/viper"
-	"github.com/toorop/peerpx/api/controllers"
 	"github.com/toorop/peerpx/api/middlewares"
 
 	"os"
@@ -78,30 +77,30 @@ func main() {
 	// 	m  -> 500
 	//  s  -> 200
 	//  xs ->
-	e.GET("/api/v1/photo/:id/:size", controllers.PhotoGet)
+	e.GET("/api/v1/photo/:id/:size", handlers.PhotoGet)
 
 	// resize photo by height (in pixel)
-	e.GET("/api/v1/photo/:id/height/:height", controllers.PhotoResize)
+	e.GET("/api/v1/photo/:id/height/:height", handlers.PhotoResize)
 
 	// returns photo resized by width
-	e.GET("/api/v1/photo/:id/width/:width", controllers.PhotoResize)
+	e.GET("/api/v1/photo/:id/width/:width", handlers.PhotoResize)
 
 	// get photo properties -> JSON object
-	e.GET("/api/v1/photo/:id/properties", controllers.PhotoGetProperties)
+	e.GET("/api/v1/photo/:id/properties", handlers.PhotoGetProperties)
 
 	// update photo properties
 	e.PUT("/api/v1/photo", handlers.PhotoPut, middlewares.AuthRequired())
 
 	// delete photo
-	e.DELETE("/api/v1/photo/:id", controllers.PhotoDel, middlewares.AuthRequired())
+	e.DELETE("/api/v1/photo/:id", handlers.PhotoDel, middlewares.AuthRequired())
 
 	// search
-	e.GET("/api/v1/photo/search", controllers.PhotoSearch)
+	e.GET("/api/v1/photo/search", handlers.PhotoSearch)
 
 	//user
 
 	// add user
-	e.POST("/api/v1/user", controllers.UserPost)
+	e.POST("/api/v1/user", handlers.UserPost)
 
 	e.Logger.Fatal(e.Start(":8080"))
 

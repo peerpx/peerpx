@@ -98,5 +98,11 @@ func main() {
 	// search
 	e.GET("/api/v1/photo/search", controllers.PhotoSearch)
 
-	log.Error(e.Start(":8080"))
+	//user
+
+	// add user
+	e.POST("/api/v1/user", controllers.UserPost)
+
+	e.Logger.Fatal(e.Start(":8080"))
+
 }

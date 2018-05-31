@@ -1,2 +1,4 @@
 .idea/
 cmd/server/dist/
+etc/datastore
+api/peerpx.db

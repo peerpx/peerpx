@@ -1,16 +1,56 @@
 package handlers
 
 import (
-	"encoding/json"
-	"io/ioutil"
 	"net/http"
-	"net/mail"
+
+	"io/ioutil"
+
+	"encoding/json"
 
 	"github.com/labstack/echo"
 	"github.com/peerpx/peerpx/entities/user"
 	"github.com/peerpx/peerpx/services/log"
 )
 
+type userCreateRequest struct {
+	Email    string
+	Username string
+	Password string
+}
+
+type userCreateResponse struct {
+	User *user.User `json:",omitempty"`
+	Msg  string     `json:",omitempty"`
+}
+
+// UserCreate create a new user
+func UserCreate(c echo.Context) error {
+	response := new(userCreateResponse)
+	// get body
+	body, err := ioutil.ReadAll(c.Request().Body)
+	if err != nil {
+		log.Errorf("%v - controller.UserAdd - unable to read request body: %v", c.RealIP(), err)
+		response.Msg = "bad request body"
+		return c.JSON(http.StatusBadRequest, response)
+	}
+	// unmarshal
+	userRequest := new(userCreateRequest)
+	if err = json.Unmarshal(body, userRequest); err != nil {
+		log.Errorf("%v - controller.UserAdd - unable to unmarshall request body: %v", c.RealIP(), err)
+		response.Msg = "bad json"
+		return c.JSON(http.StatusBadRequest, response)
+	}
+
+	response.User, err = user.Create(userRequest.Email, userRequest.Username, userRequest.Password)
+	if err != nil {
+		log.Errorf("%v - controller.UserAdd - unable to create user: %v", c.RealIP(), err)
+		response.Msg = err.Error()
+	}
+	return c.JSON(http.StatusCreated, response)
+}
+
+// a re-utiliser pour le PUT
+/*
 // UserPostRequest is request struct for adding user
 type UserPostRequest struct {
 	Username  string
@@ -36,7 +76,7 @@ type UserPostResponse struct {
 }
 
 // UserPost handle POST /api/v1/user request
-func UserPost(c echo.Context) error {
+func User(c echo.Context) error {
 	response := UserPostResponse{}
 
 	// get body request
@@ -96,3 +136,4 @@ func UserPost(c echo.Context) error {
 	response.User = user
 	return c.JSON(http.StatusCreated, response)
 }
+*/

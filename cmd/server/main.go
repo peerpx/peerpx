@@ -64,6 +64,28 @@ func main() {
 
 	// routes
 
+	////
+	// user
+
+	// create user
+	e.POST("/api/v1/user", handlers.UserCreate)
+
+	// update user
+	e.PUT("/api/v1/user", handlers.Todo)
+
+	// delete user
+	e.DELETE("/api/v1/user", handlers.Todo)
+
+	// login
+	e.POST("/api/v1/user/login", handlers.Todo)
+
+	// logout
+	e.POST("/api/v1/user/logout", handlers.Todo)
+
+	// check if pseudo is available
+	e.GET("/api/v1/user/pseudo/:pseudo/is-available", handlers.Todo)
+
+	////
 	// photo
 
 	// upload
@@ -96,11 +118,6 @@ func main() {
 
 	// search
 	e.GET("/api/v1/photo/search", handlers.PhotoSearch)
-
-	//user
-
-	// add user
-	e.POST("/api/v1/user", handlers.UserPost)
 
 	e.Logger.Fatal(e.Start(":8080"))
 

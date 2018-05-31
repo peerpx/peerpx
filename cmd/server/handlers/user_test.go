@@ -36,14 +36,27 @@ func TestUserCreate(t *testing.T) {
 		}
 	}
 
-	// TODO bad input (not an email)
+	// bad input (not an email)
+	data := `{"Email": "barfoo.com", "Username": "john", "Password": "dhfsdjhfjk"}`
+
+	req = httptest.NewRequest(echo.POST, "/api/v1/user", strings.NewReader(data))
+	rec = httptest.NewRecorder()
+	c = e.NewContext(req, rec)
+	if assert.NoError(t, UserCreate(c)) {
+		response := new(userCreateResponse)
+		assert.Equal(t, http.StatusCreated, rec.Code)
+		if assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), response)) {
+			assert.Nil(t, response.User)
+			assert.Equal(t, "barfoo.com is not a valid email", response.Msg)
+		}
+	}
 
 	// OK
 	// mocked DB
-	mock := db.InitMockedDB("sqlmock_db_usercreate")
+	mock := db.InitMockedDB("sqlmock_db_ctrlusercreate")
 	defer db.DB.Close()
 	mock.ExpectExec("^INSERT INTO \"users\"(.*)").WillReturnResult(sqlmock.NewResult(1, 1))
-	data := `{"Email": "bar@foo.com", "Username": "john", "Password": "dhfsdjhfjk"}`
+	data = `{"Email": "bar@foo.com", "Username": "john", "Password": "dhfsdjhfjk"}`
 
 	req = httptest.NewRequest(echo.POST, "/api/v1/user", strings.NewReader(data))
 	rec = httptest.NewRecorder()

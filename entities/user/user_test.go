@@ -3,8 +3,10 @@ package user
 import (
 	"testing"
 
+	"github.com/peerpx/peerpx/services/db"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 )
 
 func TestUserCreate(t *testing.T) {
@@ -31,5 +33,15 @@ func TestUserCreate(t *testing.T) {
 	_, err = Create("foo@bar.com", "jojo", "bla")
 	assert.EqualError(t, err, "password must be at least 6 char long")
 
-	// TODO good
+	// good
+	mock := db.InitMockedDB("sqlmock_db_usercreate")
+	defer db.DB.Close()
+	mock.ExpectExec("^INSERT INTO \"users\"(.*)").WillReturnResult(sqlmock.NewResult(1, 1))
+	user, err := Create("FOo@Bar.com", "jojo", "blablabla")
+	if assert.NoError(t, err) {
+		assert.Equal(t, uint(1), user.ID)
+		assert.Equal(t, "foo@bar.com", user.Email)
+		assert.Equal(t, "jojo", user.Username)
+	}
+
 }

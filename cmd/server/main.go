@@ -1,20 +1,19 @@
 package main
 
 import (
-	"os/user"
+	"os"
 
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/peerpx/peerpx/cmd/server/handlers"
 	"github.com/peerpx/peerpx/cmd/server/middlewares"
 	"github.com/peerpx/peerpx/entities/photo"
+	"github.com/peerpx/peerpx/entities/user"
 	"github.com/peerpx/peerpx/services/config"
 	"github.com/peerpx/peerpx/services/datastore"
 	"github.com/peerpx/peerpx/services/db"
 	"github.com/peerpx/peerpx/services/log"
 	"github.com/spf13/viper"
-
-	"os"
 
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
@@ -58,6 +57,9 @@ func main() {
 
 	// init
 	e := echo.New()
+
+	// add custom context
+	e.Use(middlewares.Context)
 
 	// add CORS
 	e.Use(middleware.CORS())

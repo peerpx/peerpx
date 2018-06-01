@@ -18,6 +18,8 @@ http:
 
 usernameMinLength: 4
 usernameMaxLength: 15
-
 passwordMinLength: 6
+
+cookieAuthKey: Q4ryygRH2dVEmWSAXE7PrcYjLhttLsyw
+cookieEncrytionKey: BmgYxkkdYjmc4gtv4g6P3pSEDYNES5SC
 

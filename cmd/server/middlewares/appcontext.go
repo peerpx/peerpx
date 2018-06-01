@@ -25,7 +25,7 @@ func (a *AppContext) GetCookieStore() *sessions.CookieStore {
 
 // SessionGet get data from session
 func (a *AppContext) SessionGet(key string) (interface{}, error) {
-	session, err := a.cookieStore.Get(a.Request(), "pm")
+	session, err := a.cookieStore.Get(a.Request(), "ppx")
 	if err != nil {
 		return nil, err
 	}

@@ -1,0 +1,25 @@
+prod: false
+
+hostname: peerpx.com
+
+log:
+  dir: ""
+
+photo:
+  maxWidth: 4096
+  maxHeight: 4096
+
+datastore:
+  type: fs
+  path: "/home/toorop/projects/go/src/github.com/peerpx/peerpx/cmd/server/dist/datastore"
+
+http:
+  tlsEnabled: false
+
+usernameMinLength: 4
+usernameMaxLength: 15
+passwordMinLength: 6
+
+cookieAuthKey: Q4ryygRH2dVEmWSAXE7PrcYjLhttLsyw
+cookieEncrytionKey: BmgYxkkdYjmc4gtv4g6P3pSEDYNES5SC
+

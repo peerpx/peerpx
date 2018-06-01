@@ -46,6 +46,7 @@ func UserCreate(c echo.Context) error {
 	if err != nil {
 		log.Errorf("%v - handlers.UserAdd - unable to create user: %v", c.RealIP(), err)
 		response.Msg = err.Error()
+		return c.JSON(http.StatusInternalServerError, response)
 	}
 	return c.JSON(http.StatusCreated, response)
 }

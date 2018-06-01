@@ -46,6 +46,7 @@ func TestCreate(t *testing.T) {
 
 }
 
+/*
 func TestLogin(t *testing.T) {
 	// by mail
 	mock := db.InitMockedDB("sqlmock_db_userlogin")
@@ -63,3 +64,4 @@ func TestLogin(t *testing.T) {
 	// ErrNoSuchUser
 
 }
+*/

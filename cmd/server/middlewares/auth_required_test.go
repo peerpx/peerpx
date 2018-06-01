@@ -6,7 +6,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 
+	"github.com/gorilla/sessions"
 	"github.com/labstack/echo"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,7 +16,9 @@ func TestAuthRequired(t *testing.T) {
 	e := echo.New()
 	req := httptest.NewRequest(echo.GET, "/", nil)
 	rec := httptest.NewRecorder()
-	ctx := e.NewContext(req, rec)
+	//ctx := e.NewContext(req, rec)
+
+	ctx := &AppContext{e.NewContext(req, rec), sessions.NewCookieStore([]byte(viper.GetString("cookieAuthKey")), []byte(viper.GetString("cookieEncrytionKey")))}
 
 	handler := AuthRequired()(func(c echo.Context) error {
 		return c.String(http.StatusOK, "test")

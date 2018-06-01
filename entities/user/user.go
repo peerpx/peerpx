@@ -21,7 +21,7 @@ type User struct {
 	gorm.Model `json:"-"`
 	Username   string `gorm:"type:varchar(255);unique_index"`
 	Email      string `gorm:"unique_index"`
-	Password   string
+	Password   string `json:"-"`
 	Firstname  string
 	Lastname   string
 	Gender     Gender
@@ -49,6 +49,11 @@ const (
 	Male
 	// Female female
 	Female
+)
+
+// errors
+var (
+	ErrNoSuchUser = errors.New("no such user")
 )
 
 // Create creates and returns a new user
@@ -98,8 +103,49 @@ func UserGetByID(id int) (user *User, err error) {
 }
 
 // UserGetByUsername return user by its ID
-func UserGetByUsername(username string) (user User, err error) {
-	err = db.DB.Find(&user).Where("username = ?", username).Error
+func GetByUsername(username string) (user *User, err error) {
+	user = new(User)
+	username = strings.TrimSpace(strings.ToLower(username))
+	err = db.DB.Find(user).Where("username = ?", username).Error
+	return
+}
+
+// GetByEmail returns user by his email
+func GetByEmail(email string) (user *User, err error) {
+	user = new(User)
+	email = strings.TrimSpace(strings.ToLower(email))
+	err = db.DB.Find(user).Where("email = ?", email).Error
+	return
+}
+
+// UserLogin returns user if exists
+func Login(login, password string) (user *User, err error) {
+	isEmail := false
+	login = strings.ToLower(login)
+	_, err = mail.ParseAddress(login)
+	if err != nil {
+		isEmail = true
+	}
+	if isEmail {
+		user, err = GetByEmail(login)
+	} else {
+		user, err = GetByUsername(login)
+	}
+	if err != nil {
+		switch err {
+		case gorm.ErrRecordNotFound:
+			return nil, ErrNoSuchUser
+		default:
+			return nil, err
+		}
+	}
+	// check password
+	if err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		if err == bcrypt.ErrMismatchedHashAndPassword {
+			err = ErrNoSuchUser
+		}
+		return nil, err
+	}
 	return
 }
 

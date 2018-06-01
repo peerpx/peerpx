@@ -1,28 +1,22 @@
 package handlers
 
 import (
-	// jpeg
+	"bytes"
+	"encoding/json"
+	"fmt"
 	_ "image/jpeg"
-	// png
 	_ "image/png"
+	"io/ioutil"
 	"net/http"
+	"strconv"
 
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
-	log "github.com/sirupsen/logrus"
-	"github.com/toorop/peerpx/core"
-	//"encoding/json"
-	//"fmt"
-	"encoding/json"
-	"fmt"
-	"io/ioutil"
-	"strconv"
-
-	"bytes"
-
 	"github.com/peerpx/peerpx/entities/photo"
+	"github.com/peerpx/peerpx/pkg/hasher"
 	"github.com/peerpx/peerpx/pkg/image"
 	"github.com/peerpx/peerpx/services/datastore"
+	log "github.com/sirupsen/logrus"
 	"github.com/spf13/viper"
 )
 
@@ -123,7 +117,7 @@ func PhotoPost(c echo.Context) error {
 	}
 
 	// get hash
-	phot.Hash, err = core.GetHash(photoBytes)
+	phot.Hash, err = hasher.GetHash(photoBytes)
 	if err != nil {
 		log.Errorf("%v - controllers.PhotoPost - unable to get photo hash: %v", c.RealIP(), err)
 		return c.NoContent(http.StatusInternalServerError)

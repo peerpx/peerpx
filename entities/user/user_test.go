@@ -9,7 +9,7 @@ import (
 	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 )
 
-func TestUserCreate(t *testing.T) {
+func TestCreate(t *testing.T) {
 	// bad email
 	_, err := Create("foo", "john", "blablabla")
 	if assert.Error(t, err) {
@@ -43,5 +43,23 @@ func TestUserCreate(t *testing.T) {
 		assert.Equal(t, "foo@bar.com", user.Email)
 		assert.Equal(t, "jojo", user.Username)
 	}
+
+}
+
+func TestLogin(t *testing.T) {
+	// by mail
+	mock := db.InitMockedDB("sqlmock_db_userlogin")
+	defer db.DB.Close()
+	mock.ExpectExec("^INSERT INTO \"users\"(.*)").WillReturnResult(sqlmock.NewResult(1, 1))
+	user, err := Login("FOo@Bar.com", "jojo", "")
+	if assert.NoError(t, err) {
+		assert.Equal(t, uint(1), user.ID)
+		assert.Equal(t, "foo@bar.com", user.Email)
+		assert.Equal(t, "jojo", user.Username)
+	}
+
+	// bu username
+
+	// ErrNoSuchUser
 
 }

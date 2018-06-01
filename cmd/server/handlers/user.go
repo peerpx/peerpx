@@ -56,7 +56,7 @@ type userLoginRequest struct {
 }
 
 type userLoginResponse struct {
-	User *user.User `json:"omitempty"`
+	User *user.User `json:",omitempty"`
 	Msg  string     `json:",omitempty"`
 }
 

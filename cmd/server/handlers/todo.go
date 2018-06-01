@@ -8,5 +8,5 @@ import (
 
 // Todo for controllers to do
 func Todo(c echo.Context) error {
-	return c.String(http.StatusOK, "TODO")
+	return c.String(http.StatusTeapot, "TODO")
 }

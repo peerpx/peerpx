@@ -58,11 +58,36 @@ func main() {
 	// init
 	e := echo.New()
 
+	// add custom context
+	e.Use(middlewares.Context)
+
 	// add CORS
 	e.Use(middleware.CORS())
 
 	// routes
 
+	////
+	// user
+
+	// create user
+	e.POST("/api/v1/user", handlers.UserCreate)
+
+	// update user
+	e.PUT("/api/v1/user", handlers.Todo)
+
+	// delete user
+	e.DELETE("/api/v1/user", handlers.Todo)
+
+	// login
+	e.POST("/api/v1/user/login", handlers.UserLogin)
+
+	// logout
+	e.POST("/api/v1/user/logout", handlers.Todo)
+
+	// check if pseudo is available
+	e.GET("/api/v1/user/pseudo/:pseudo/is-available", handlers.Todo)
+
+	////
 	// photo
 
 	// upload
@@ -95,11 +120,6 @@ func main() {
 
 	// search
 	e.GET("/api/v1/photo/search", handlers.PhotoSearch)
-
-	//user
-
-	// add user
-	e.POST("/api/v1/user", handlers.UserPost)
 
 	e.Logger.Fatal(e.Start(":8080"))
 

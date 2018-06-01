@@ -19,23 +19,23 @@ import (
 // User represent an user
 type User struct {
 	gorm.Model `json:"-"`
-	Username   string `gorm:"type:varchar(255);unique_index"`
-	Email      string `gorm:"unique_index"`
+	Username   string `gorm:"type:varchar(255);unique_index" json:"username"`
+	Email      string `gorm:"unique_index" json:"email"`
 	Password   string `json:"-"`
-	Firstname  string
-	Lastname   string
-	Gender     Gender
-	Address    string
-	City       string
-	State      string
-	Zip        string
-	Country    string
-	About      string
-	Locale     string // char(2)
-	ShowNsfw   bool
-	UserURL    string
-	Admin      bool
-	AvatarURL  string
+	Firstname  string `json:"firstname"`
+	Lastname   string `json:"lastname"`
+	Gender     Gender `json:"gender"`
+	Address    string `json:"address"`
+	City       string `json:"city"`
+	State      string `json:"state"`
+	Zip        string `json:"zip"`
+	Country    string `json:"country"`
+	About      string `json:"about"`
+	Locale     string `json:"locale"` // char(2)
+	ShowNsfw   bool   `json:"show_nsfw"`
+	UserURL    string `json:"user_url"`
+	Admin      bool   `json:"admin"`
+	AvatarURL  string `json:"avatar_url"`
 	APIKey     string `json:"-"`
 }
 

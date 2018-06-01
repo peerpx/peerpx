@@ -52,8 +52,8 @@ func UserCreate(c echo.Context) error {
 }
 
 type userLoginRequest struct {
-	Login    string
-	Password string
+	Login    string `json:"login"`
+	Password string `json:"password"`
 }
 
 type userLoginResponse struct {

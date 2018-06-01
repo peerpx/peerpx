@@ -10,22 +10,22 @@ import (
 // add session management via encrypted cookie
 type AppContext struct {
 	echo.Context
-	cookieStore *sessions.CookieStore
+	CookieStore *sessions.CookieStore
 }
 
-// SetCookieStore cookieStore setter
+// SetCookieStore CookieStore setter
 func (a *AppContext) SetCookieStore(cs *sessions.CookieStore) {
-	a.cookieStore = cs
+	a.CookieStore = cs
 }
 
-// GetCookieStore cookieStore getter
+// GetCookieStore CookieStore getter
 func (a *AppContext) GetCookieStore() *sessions.CookieStore {
-	return a.cookieStore
+	return a.CookieStore
 }
 
 // SessionGet get data from session
 func (a *AppContext) SessionGet(key string) (interface{}, error) {
-	session, err := a.cookieStore.Get(a.Request(), "ppx")
+	session, err := a.CookieStore.Get(a.Request(), "ppx")
 	if err != nil {
 		return nil, err
 	}
@@ -34,7 +34,7 @@ func (a *AppContext) SessionGet(key string) (interface{}, error) {
 
 // SessionSet set data in session
 func (a *AppContext) SessionSet(key string, value interface{}) error {
-	session, err := a.cookieStore.Get(a.Request(), "ppx")
+	session, err := a.CookieStore.Get(a.Request(), "ppx")
 	if err != nil {
 		return err
 	}

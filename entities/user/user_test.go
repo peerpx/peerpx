@@ -3,6 +3,7 @@ package user
 import (
 	"testing"
 
+	"github.com/jinzhu/gorm"
 	"github.com/peerpx/peerpx/services/db"
 	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
@@ -43,25 +44,39 @@ func TestCreate(t *testing.T) {
 		assert.Equal(t, "foo@bar.com", user.Email)
 		assert.Equal(t, "jojo", user.Username)
 	}
-
 }
 
-/*
 func TestLogin(t *testing.T) {
 	// by mail
 	mock := db.InitMockedDB("sqlmock_db_userlogin")
 	defer db.DB.Close()
-	mock.ExpectExec("^INSERT INTO \"users\"(.*)").WillReturnResult(sqlmock.NewResult(1, 1))
-	user, err := Login("FOo@Bar.com", "jojo", "")
+	row := sqlmock.NewRows([]string{"id", "username", "email", "password"}).AddRow(1, "john", "john@doe.com", "$2y$10$vjxV/XuyPaPuINLopc49COmFfxEiVFac4m0L7GgqvJ.KAQcfpmvCa")
+	mock.ExpectQuery("^SELECT(.*)").WillReturnRows(row)
+	user, err := Login("john@doe.com", "secret")
 	if assert.NoError(t, err) {
 		assert.Equal(t, uint(1), user.ID)
-		assert.Equal(t, "foo@bar.com", user.Email)
-		assert.Equal(t, "jojo", user.Username)
+		assert.Equal(t, "john@doe.com", user.Email)
+		assert.Equal(t, "john", user.Username)
 	}
 
 	// bu username
+	row = sqlmock.NewRows([]string{"id", "username", "email", "password"}).AddRow(1, "john", "john@doe.com", "$2y$10$vjxV/XuyPaPuINLopc49COmFfxEiVFac4m0L7GgqvJ.KAQcfpmvCa")
+	mock.ExpectQuery("^SELECT(.*)").WillReturnRows(row)
+	user, err = Login("john", "secret")
+	if assert.NoError(t, err) {
+		assert.Equal(t, uint(1), user.ID)
+		assert.Equal(t, "john@doe.com", user.Email)
+		assert.Equal(t, "john", user.Username)
+	}
+
+	row = sqlmock.NewRows([]string{"id", "username", "email", "password"}).AddRow(1, "john", "john@doe.com", "$2y$10$vjxV/XuyPaPdfdfuINLopc49COmFfxEiVFac4m0L7GgqvJ.KAQcfpmvCa")
+	mock.ExpectQuery("^SELECT(.*)").WillReturnRows(row)
+	user, err = Login("john", "secret")
+	assert.EqualError(t, err, "no such user")
 
 	// ErrNoSuchUser
+	mock.ExpectQuery("^SELECT(.*)").WillReturnError(gorm.ErrRecordNotFound)
+	user, err = Login("john", "secret")
+	assert.EqualError(t, err, "no such user")
 
 }
-*/

@@ -49,6 +49,11 @@ func UserCreate(c echo.Context) error {
 	return c.JSON(http.StatusCreated, response)
 }
 
+// UserLogin used to login
+func UserLogin(c echo.Context) error {
+	return c.NoContent(http.StatusOK)
+}
+
 // a re-utiliser pour le PUT
 /*
 // UserPostRequest is request struct for adding user

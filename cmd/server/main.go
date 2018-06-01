@@ -6,13 +6,13 @@ import (
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/peerpx/peerpx/cmd/server/handlers"
+	"github.com/peerpx/peerpx/cmd/server/middlewares"
 	"github.com/peerpx/peerpx/entities/photo"
 	"github.com/peerpx/peerpx/services/config"
 	"github.com/peerpx/peerpx/services/datastore"
 	"github.com/peerpx/peerpx/services/db"
 	"github.com/peerpx/peerpx/services/log"
 	"github.com/spf13/viper"
-	"github.com/toorop/peerpx/api/middlewares"
 
 	"os"
 
@@ -77,7 +77,7 @@ func main() {
 	e.DELETE("/api/v1/user", handlers.Todo)
 
 	// login
-	e.POST("/api/v1/user/login", handlers.Todo)
+	e.POST("/api/v1/user/login", handlers.UserLogin)
 
 	// logout
 	e.POST("/api/v1/user/logout", handlers.Todo)

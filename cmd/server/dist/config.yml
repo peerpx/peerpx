@@ -15,3 +15,9 @@ datastore:
 
 http:
   tlsEnabled: false
+
+usernameMinLength: 4
+usernameMaxLength: 15
+
+passwordMinLength: 6
+

@@ -3,7 +3,7 @@ package middlewares
 import (
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo"
-	"github.com/spf13/viper"
+	"github.com/peerpx/peerpx/services/config"
 )
 
 // AppContext extends echo.Context
@@ -45,7 +45,7 @@ func (a *AppContext) SessionSet(key string, value interface{}) error {
 func Context(h echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		cc := &AppContext{c, nil}
-		cc.SetCookieStore(sessions.NewCookieStore([]byte(viper.GetString("cookieAuthKey")), []byte(viper.GetString("cookieEncrytionKey"))))
+		cc.SetCookieStore(sessions.NewCookieStore([]byte(config.GetStringP("cookieAuthKey")), []byte(config.GetStringP("cookieEncrytionKey"))))
 		return h(cc)
 	}
 }

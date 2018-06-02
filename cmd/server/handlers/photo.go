@@ -15,9 +15,9 @@ import (
 	"github.com/peerpx/peerpx/entities/photo"
 	"github.com/peerpx/peerpx/pkg/hasher"
 	"github.com/peerpx/peerpx/pkg/image"
+	"github.com/peerpx/peerpx/services/config"
 	"github.com/peerpx/peerpx/services/datastore"
 	log "github.com/sirupsen/logrus"
-	"github.com/spf13/viper"
 )
 
 // PhotoPostResponse is the response sent by PhotoPost ctrl
@@ -101,8 +101,8 @@ func PhotoPost(c echo.Context) error {
 		log.Errorf("%v - controllers.PhotoPost - unable to core.NewImageFromBytes(): %v", c.RealIP(), err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
-	if img.Width() > viper.GetInt("photo.maxWidth") || img.Height() > viper.GetInt("photo.maxHeight") {
-		err = img.ResizeToFit(viper.GetInt("photo.maxWidth"), viper.GetInt("photo.maxHeight"))
+	if img.Width() > config.GetIntDefault("photo.maxWidth", 2000) || img.Height() > config.GetIntDefault("photo.maxHeight", 2000) {
+		err = img.ResizeToFit(config.GetIntDefault("photo.maxWidth", 2000), config.GetIntDefault("photo.maxHeight", 2000))
 		if err != nil && err != image.ErrUpscaleNotAllowed {
 			log.Errorf("%v - controllers.PhotoPost - unable to img.ResizeToFit(): %v", c.RealIP(), err)
 			return c.NoContent(http.StatusInternalServerError)
@@ -129,10 +129,10 @@ func PhotoPost(c echo.Context) error {
 
 	// URL
 	// TODO a supprimer ?
-	if viper.GetBool("http.tlsEnabled") {
-		phot.URL = fmt.Sprintf("https://%s/api/v1/photo/%s/raw", viper.GetString("hostname"), phot.Hash)
+	if config.GetBool("http.tlsEnabled") {
+		phot.URL = fmt.Sprintf("https://%s/api/v1/photo/%s/raw", config.GetStringP("hostname"), phot.Hash)
 	} else {
-		phot.URL = fmt.Sprintf("http://%s/api/v1/photo/%s/raw", viper.GetString("hostname"), phot.Hash)
+		phot.URL = fmt.Sprintf("http://%s/api/v1/photo/%s/raw", config.GetStringP("hostname"), phot.Hash)
 	}
 
 	// save in datastore

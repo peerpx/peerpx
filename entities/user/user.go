@@ -2,17 +2,14 @@ package user
 
 import (
 	"errors"
-	"net/mail"
-
 	"fmt"
-
+	"net/mail"
 	"strings"
-
 	"unicode/utf8"
 
 	"github.com/jinzhu/gorm"
+	"github.com/peerpx/peerpx/services/config"
 	"github.com/peerpx/peerpx/services/db"
-	"github.com/spf13/viper"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -67,16 +64,16 @@ func Create(email, username, clearPassword string) (user *User, err error) {
 	// username length
 	username = strings.ToLower(username)
 	usernameLength := utf8.RuneCountInString(username)
-	if usernameLength > viper.GetInt("usernameMaxLength") {
-		return nil, fmt.Errorf("username must have %d char max", viper.GetInt("usernameMaxLength"))
+	if usernameLength > config.GetIntDefault("usernameMaxLength", 25) {
+		return nil, fmt.Errorf("username must have %d char max", config.GetIntDefault("usernameMaxLength", 25))
 	}
-	if usernameLength < viper.GetInt("usernameMinLength") {
-		return nil, fmt.Errorf("username must have %d char min", viper.GetInt("usernameMinLength"))
+	if usernameLength < config.GetIntDefault("usernameMinLength", 4) {
+		return nil, fmt.Errorf("username must have %d char min", config.GetIntDefault("usernameMinLength", 4))
 	}
 
 	// password
-	if utf8.RuneCountInString(clearPassword) < viper.GetInt("passwordMinLength") {
-		return nil, fmt.Errorf("password must be at least %d char long", viper.GetInt("passwordMinLength"))
+	if utf8.RuneCountInString(clearPassword) < config.GetIntDefault("passwordMinLength", 6) {
+		return nil, fmt.Errorf("password must be at least %d char long", config.GetIntDefault("passwordMinLength", 6))
 	}
 
 	user = new(User)

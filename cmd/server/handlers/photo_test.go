@@ -1,25 +1,21 @@
 package handlers
 
 import (
-	"io/ioutil"
-	"testing"
-
 	"bytes"
-	"net/http/httptest"
-
-	"net/http"
-
 	"encoding/json"
-
 	"io"
+	"io/ioutil"
 	"mime/multipart"
+	"net/http"
+	"net/http/httptest"
 	"os"
+	"testing"
 
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
+	"github.com/peerpx/peerpx/services/config"
 	"github.com/peerpx/peerpx/services/datastore"
 	"github.com/peerpx/peerpx/services/db"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 )
@@ -31,9 +27,9 @@ func handleErr(err error) {
 }
 
 func TestPhotoPost(t *testing.T) {
-	// init viper (small values -> photo will be re-encoded)
-	viper.Set("photo.maxWidth", 100)
-	viper.Set("photo.maxHeight", 100)
+	// init config (small values -> photo will be re-encoded)
+	config.Set("photo.maxWidth", 100)
+	config.Set("photo.maxHeight", 100)
 
 	//  init mocked datastore
 	datastore.InitMokedDatastore([]byte{}, nil)

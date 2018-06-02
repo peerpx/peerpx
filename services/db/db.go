@@ -13,7 +13,7 @@ import (
 var DB *gorm.DB
 
 // InitDB initialize database connector
-// todo: get options/type from viper
+// todo: get options/type from config
 func InitDB() (err error) {
 	DB, err = gorm.Open("sqlite3", "peerpx.db")
 	return err

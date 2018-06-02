@@ -250,7 +250,7 @@ func GetStringSliceE(key string) ([]string, error) {
 }
 
 // GetStringSlice returns the value associated with the key as an string slice
-func GetStringSlice(key string) time.Time {
+func GetStringSlice(key string) []string {
 	v, err := GetStringSliceE(key)
 	if err != nil {
 		return nil
@@ -260,7 +260,7 @@ func GetStringSlice(key string) time.Time {
 
 // GetStringSliceDefault return the value associated with the key as an string
 // slice or defaultValue if an error occurred, or if key is not found
-func GetStringSliceDefault(key string, defaultValue []string) time.Time {
+func GetStringSliceDefault(key string, defaultValue []string) []string {
 	v, err := GetStringSliceE(key)
 	if err != nil {
 		return defaultValue

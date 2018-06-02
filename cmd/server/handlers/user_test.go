@@ -16,16 +16,16 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 	"github.com/peerpx/peerpx/cmd/server/middlewares"
+	"github.com/peerpx/peerpx/services/config"
 	"github.com/peerpx/peerpx/services/db"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 )
 
 func TestUserCreate(t *testing.T) {
 
-	viper.Set("usernameMaxLength", 5)
-	viper.Set("usernameMinLength", 3)
+	config.Set("usernameMaxLength", 5)
+	config.Set("usernameMinLength", 3)
 
 	// bad body (not json)
 	e := echo.New()

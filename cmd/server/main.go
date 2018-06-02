@@ -2,7 +2,12 @@ package main
 
 import (
 	"os"
+	"path"
+	"path/filepath"
 
+	_ "github.com/jinzhu/gorm/dialects/mysql"
+	_ "github.com/jinzhu/gorm/dialects/postgres"
+	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/peerpx/peerpx/cmd/server/handlers"
@@ -13,11 +18,6 @@ import (
 	"github.com/peerpx/peerpx/services/datastore"
 	"github.com/peerpx/peerpx/services/db"
 	"github.com/peerpx/peerpx/services/log"
-	"github.com/spf13/viper"
-
-	_ "github.com/jinzhu/gorm/dialects/mysql"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
 )
 
 func main() {
@@ -26,9 +26,16 @@ func main() {
 	// init logger
 	log.InitBasicLogger(os.Stdout)
 
+	// get working dir
+	workingDir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	if err != nil {
+		log.Errorf("get working dir failed: %v", err)
+		os.Exit(1)
+	}
+
 	// load config
-	if err = config.InitViper(); err != nil {
-		log.Errorf("viper initialization failed : %v ", err)
+	if err = config.InitBasicConfigFromFile(path.Join(workingDir, "peerpx.conf")); err != nil {
+		log.Errorf("init config failed : %v ", err)
 		os.Exit(1)
 	}
 
@@ -50,8 +57,8 @@ func main() {
 	}
 
 	// init datastore
-	if err = datastore.InitFilesystemDatastore(viper.GetString("datastore.path")); err != nil {
-		log.Errorf("datastore initialization failed: %v", err)
+	if err = datastore.InitFilesystemDatastore(config.GetStringDefault(("datastore.path"), path.Join(workingDir, "datastore"))); err != nil {
+		log.Errorf("datastore initialization  PLOPfailed: %v", err)
 		os.Exit(1)
 	}
 
@@ -62,10 +69,14 @@ func main() {
 	e.Use(middlewares.Context)
 
 	// add CORS
-	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: []string{"http://localhost"},
-		AllowMethods: []string{echo.GET, echo.PUT, echo.POST, echo.DELETE},
-	}))
+	if !config.GetBoolDefault("prod", true) {
+		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+			AllowOrigins:     []string{"http://localhost:3000/", "*"},
+			AllowCredentials: true,
+			AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, "X-Api-Key"},
+			AllowMethods:     []string{echo.GET, echo.HEAD, echo.PUT, echo.PATCH, echo.POST, echo.DELETE},
+		}))
+	}
 
 	// routes
 

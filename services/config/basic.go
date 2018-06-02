@@ -2,9 +2,12 @@ package config
 
 import (
 	"bufio"
+	"bytes"
 	"errors"
 	"fmt"
 	"io"
+	"io/ioutil"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -20,12 +23,6 @@ var (
 
 // InitBasicConfig initialize a config with a basic scheme
 func InitBasicConfig(r io.Reader) error {
-	/*fd, err := os.Open(path)
-	if err != nil {
-		return fmt.Errorf("unable to open conf file %s: %v", path, err)
-	}
-	defer fd.Close()
-	*/
 	b := Basic{
 		kv: make(map[string]string),
 	}
@@ -35,7 +32,7 @@ func InitBasicConfig(r io.Reader) error {
 	for scanner.Scan() {
 		line := scanner.Text()
 		// comments
-		if line[0] == 35 {
+		if len(line) == 0 || line[0] == 35 {
 			continue
 		}
 		keyValue := strings.SplitAfterN(line, ":", 2)
@@ -48,7 +45,20 @@ func InitBasicConfig(r io.Reader) error {
 	return nil
 }
 
-// todo InitBasicFile
+// InitBasicConfigFromFile init basic config, with file as source
+func InitBasicConfigFromFile(path string) error {
+	fd, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("unable to open conf file %s: %v", path, err)
+	}
+	defer fd.Close()
+	r, err := ioutil.ReadAll(fd)
+	if err != nil {
+		return err
+	}
+	return InitBasicConfig(bytes.NewReader(r))
+
+}
 
 func (c Basic) set(key string, value interface{}) error {
 	// cast to string
@@ -130,7 +140,7 @@ func (c Basic) getStringSliceE(key string) ([]string, error) {
 	return sl, nil
 }
 
-func (c Basic) getTime(key string) (time.Time, error) {
+func (c Basic) getTimeE(key string) (time.Time, error) {
 	v, err := c.getE(key)
 	if err != nil {
 		return time.Time{}, err
@@ -143,7 +153,7 @@ func (c Basic) getTime(key string) (time.Time, error) {
 	return time.Unix(ts, 0), nil
 }
 
-func (c Basic) getDuration(key string) (time.Duration, error) {
+func (c Basic) getDurationE(key string) (time.Duration, error) {
 	v, err := c.getE(key)
 	if err != nil {
 		return time.Duration(0), err

@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/jinzhu/gorm"
+	"github.com/peerpx/peerpx/services/config"
 	"github.com/peerpx/peerpx/services/db"
-	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 )
@@ -18,8 +18,8 @@ func TestCreate(t *testing.T) {
 	}
 
 	// username length
-	viper.Set("usernameMaxLength", 5)
-	viper.Set("usernameMinLength", 3)
+	config.Set("usernameMaxLength", 5)
+	config.Set("usernameMinLength", 3)
 	_, err = Create("foo@bar.com", "jojoletaxi", "blablabla")
 	if assert.Error(t, err) {
 		assert.Equal(t, "username must have 5 char max", err.Error())
@@ -30,7 +30,7 @@ func TestCreate(t *testing.T) {
 	}
 
 	// password length
-	viper.Set("passwordMinLength", 6)
+	config.Set("passwordMinLength", 6)
 	_, err = Create("foo@bar.com", "jojo", "bla")
 	assert.EqualError(t, err, "password must be at least 6 char long")
 

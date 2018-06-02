@@ -62,7 +62,10 @@ func main() {
 	e.Use(middlewares.Context)
 
 	// add CORS
-	e.Use(middleware.CORS())
+	e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+		AllowOrigins: []string{"http://localhost"},
+		AllowMethods: []string{echo.GET, echo.PUT, echo.POST, echo.DELETE},
+	}))
 
 	// routes
 

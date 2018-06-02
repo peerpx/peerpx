@@ -24,8 +24,8 @@ import (
 
 func TestUserCreate(t *testing.T) {
 
-	config.Set("usernameMaxLength", 5)
-	config.Set("usernameMinLength", 3)
+	config.Set("usernameMaxLength", "5")
+	config.Set("usernameMinLength", "3")
 
 	// bad body (not json)
 	e := echo.New()

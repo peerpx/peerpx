@@ -11,6 +11,8 @@ import (
 	"os"
 	"testing"
 
+	"strings"
+
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 	"github.com/peerpx/peerpx/services/config"
@@ -28,8 +30,9 @@ func handleErr(err error) {
 
 func TestPhotoPost(t *testing.T) {
 	// init config (small values -> photo will be re-encoded)
-	config.Set("photo.maxWidth", 100)
-	config.Set("photo.maxHeight", 100)
+	config.InitBasicConfig(strings.NewReader(""))
+	config.Set("photo.maxWidth", "100")
+	config.Set("photo.maxHeight", "100")
 
 	//  init mocked datastore
 	datastore.InitMokedDatastore([]byte{}, nil)
@@ -63,6 +66,8 @@ func TestPhotoPost(t *testing.T) {
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
+	config.InitBasicConfig(strings.NewReader(""))
+	config.Set("hostname", "peerpx.com")
 	if assert.NoError(t, PhotoPost(c)) {
 		assert.Equal(t, http.StatusCreated, rec.Code)
 		resp, err := ioutil.ReadAll(rec.Body)
@@ -70,7 +75,7 @@ func TestPhotoPost(t *testing.T) {
 		var response PhotoPostResponse
 		err = json.Unmarshal(resp, &response)
 		assert.NoError(t, err)
-		assert.Equal(t, "H62MqsYPjtrQ56bgEJyaMVSGNJH3koXkBHgpj4uigR8T", response.PhotoProps.Hash)
+		assert.Equal(t, "AE2LNbBQ3vBDJHZpyNt3g9dFs14gcDryx6Lcted6d1yE", response.PhotoProps.Hash)
 	}
 }
 

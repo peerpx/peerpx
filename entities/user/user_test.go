@@ -3,6 +3,8 @@ package user
 import (
 	"testing"
 
+	"strings"
+
 	"github.com/jinzhu/gorm"
 	"github.com/peerpx/peerpx/services/config"
 	"github.com/peerpx/peerpx/services/db"
@@ -11,6 +13,7 @@ import (
 )
 
 func TestCreate(t *testing.T) {
+	config.InitBasicConfig(strings.NewReader(""))
 	// bad email
 	_, err := Create("foo", "john", "blablabla")
 	if assert.Error(t, err) {
@@ -18,8 +21,9 @@ func TestCreate(t *testing.T) {
 	}
 
 	// username length
-	config.Set("usernameMaxLength", 5)
-	config.Set("usernameMinLength", 3)
+	config.Set("username.maxLength", "5")
+	config.Set("username.minLength", "3")
+
 	_, err = Create("foo@bar.com", "jojoletaxi", "blablabla")
 	if assert.Error(t, err) {
 		assert.Equal(t, "username must have 5 char max", err.Error())
@@ -30,7 +34,7 @@ func TestCreate(t *testing.T) {
 	}
 
 	// password length
-	config.Set("passwordMinLength", 6)
+	config.Set("password.minLength", "6")
 	_, err = Create("foo@bar.com", "jojo", "bla")
 	assert.EqualError(t, err, "password must be at least 6 char long")
 

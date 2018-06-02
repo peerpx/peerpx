@@ -64,16 +64,16 @@ func Create(email, username, clearPassword string) (user *User, err error) {
 	// username length
 	username = strings.ToLower(username)
 	usernameLength := utf8.RuneCountInString(username)
-	if usernameLength > config.GetIntDefault("usernameMaxLength", 25) {
-		return nil, fmt.Errorf("username must have %d char max", config.GetIntDefault("usernameMaxLength", 25))
+	if usernameLength > config.GetIntDefault("username.maxLength", 25) {
+		return nil, fmt.Errorf("username must have %d char max", config.GetIntDefault("username.maxLength", 25))
 	}
-	if usernameLength < config.GetIntDefault("usernameMinLength", 4) {
-		return nil, fmt.Errorf("username must have %d char min", config.GetIntDefault("usernameMinLength", 4))
+	if usernameLength < config.GetIntDefault("username.minLength", 4) {
+		return nil, fmt.Errorf("username must have %d char min", config.GetIntDefault("username.minLength", 4))
 	}
 
 	// password
-	if utf8.RuneCountInString(clearPassword) < config.GetIntDefault("passwordMinLength", 6) {
-		return nil, fmt.Errorf("password must be at least %d char long", config.GetIntDefault("passwordMinLength", 6))
+	if utf8.RuneCountInString(clearPassword) < config.GetIntDefault("password.minLength", 6) {
+		return nil, fmt.Errorf("password must be at least %d char long", config.GetIntDefault("password.minLength", 6))
 	}
 
 	user = new(User)

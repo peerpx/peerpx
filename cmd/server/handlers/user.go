@@ -98,6 +98,13 @@ func UserLogin(ac echo.Context) error {
 	return c.JSON(http.StatusOK, response)
 }
 
+// UserMe return user (auth needed)
+func UserMe(ac echo.Context) error {
+	c := ac.(*middlewares.AppContext)
+	user := c.Get("u")
+	return c.JSON(http.StatusOK, user)
+}
+
 // a re-utiliser pour le PUT
 /*
 // UserPostRequest is request struct for adding user

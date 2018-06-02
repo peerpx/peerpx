@@ -86,6 +86,11 @@ func main() {
 	// create user
 	e.POST("/api/v1/user", handlers.UserCreate)
 
+	// get me
+	e.GET("/api/v1/user/me", handlers.UserMe, middlewares.AuthRequired())
+	// TODO remove
+	e.POST("/user/me", handlers.UserMe, middlewares.AuthRequired())
+
 	// update user
 	e.PUT("/api/v1/user", handlers.Todo)
 
@@ -134,6 +139,10 @@ func main() {
 
 	// search
 	e.GET("/api/v1/photo/search", handlers.PhotoSearch)
+
+	/////
+	// Client
+	e.Static("/", "./www")
 
 	e.Logger.Fatal(e.Start(":8080"))
 

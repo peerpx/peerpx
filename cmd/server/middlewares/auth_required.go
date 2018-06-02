@@ -27,7 +27,7 @@ func AuthRequired() echo.MiddlewareFunc {
 					log.Errorf("%v - middleware.AuthRequired - user.GetByUsername(%s) failed: %v", c.RealIP(), username.(string), err)
 					return err
 				}
-				c.Set("user", u)
+				c.Set("u", u)
 			} else {
 				// TODO refactor
 				// get header x-api-key

@@ -7,6 +7,7 @@ import (
 	"io"
 	"strconv"
 	"strings"
+	"time"
 )
 
 type Basic struct {
@@ -14,8 +15,7 @@ type Basic struct {
 }
 
 var (
-	ErrNotFound        = errors.New("key not found")
-	ErrIncomptibleType = errors.New("incompatible type")
+	ErrNotFound = errors.New("key not found")
 )
 
 // InitBasicConfig initialize a config with a basic scheme
@@ -44,10 +44,11 @@ func InitBasicConfig(r io.Reader) error {
 		}
 		b.kv[strings.ToLower(keyValue[0][:len(keyValue[0])-1])] = strings.TrimSpace(keyValue[1])
 	}
-	//log.Printf("KEYVALUE %v", b.kv)
 	conf = b
 	return nil
 }
+
+// todo InitBasicFile
 
 func (c Basic) set(key string, value interface{}) error {
 	// cast to string
@@ -55,76 +56,98 @@ func (c Basic) set(key string, value interface{}) error {
 	return nil
 }
 
-func (c Basic) get(key string) interface{} {
-	v := c.kv[strings.ToLower(key)]
-	return v
+func (c Basic) isSet(key string) (bool, error) {
+	_, found := c.kv[strings.ToLower(key)]
+	return found, nil
 }
 
-func (c Basic) getOrPanic(key string) interface{} {
+func (c Basic) getE(key string) (interface{}, error) {
 	v, found := c.kv[strings.ToLower(key)]
 	if !found {
-		panic(ErrNotFound)
+		return nil, ErrNotFound
 	}
-	return v
+	return v, nil
 }
 
-func (c Basic) getInt(key string) int {
-	v, found := c.kv[strings.ToLower(key)]
-	if !found {
-		return 0
+func (c Basic) getIntE(key string) (int, error) {
+	v, err := c.getE(key)
+	if err != nil {
+		return 0, err
 	}
-	vInt, err := strconv.ParseInt(v, 10, 64)
+	vInt, err := strconv.ParseInt(v.(string), 10, 64)
 	if err != nil {
 		vInt = 0
 	}
-	return int(vInt)
+	return int(vInt), err
 }
 
-func (c Basic) getIntOrPanic(key string) int {
-	v, found := c.kv[strings.ToLower(key)]
-	if !found {
-		panic(ErrNotFound)
-	}
-	vInt, err := strconv.ParseInt(v, 10, 64)
+func (c Basic) getFloat64E(key string) (float64, error) {
+	v, err := c.getE(key)
 	if err != nil {
-		panic(err)
+		return 0, err
 	}
-	return int(vInt)
-}
-
-func (c Basic) getFloat64(key string) float64 {
-	v, found := c.kv[strings.ToLower(key)]
-	if !found {
-		return 0
-	}
-	vFloat, err := strconv.ParseFloat(v, 64)
+	vF, err := strconv.ParseFloat(v.(string), 64)
 	if err != nil {
-		vFloat = 0
+		vF = 0
 	}
-	return vFloat
+	return vF, err
 }
 
-func (c Basic) getFloat64OrPanic(key string) float64 {
-	v, found := c.kv[strings.ToLower(key)]
-	if !found {
-		panic(ErrNotFound)
-	}
-	vFloat, err := strconv.ParseFloat(v, 64)
+func (c Basic) getBoolE(key string) (bool, error) {
+	v, err := c.getE(key)
 	if err != nil {
-		panic(err)
+		return false, err
 	}
-	return vFloat
+	vB, err := strconv.ParseBool(v.(string))
+	if err != nil {
+		vB = false
+	}
+	return vB, err
 }
 
-func (c Basic) getString(key string) string {
-	i := c.get(key)
-	return i.(string)
+func (c Basic) getStringE(key string) (string, error) {
+	v, err := c.getE(key)
+	if err != nil {
+		return "", err
+	}
+	return v.(string), err
 }
 
-func (c Basic) getStringOrPanic(key string) string {
-	v, found := c.kv[strings.ToLower(key)]
-	if !found {
-		panic(ErrNotFound)
+func (c Basic) getStringSliceE(key string) ([]string, error) {
+	v, err := c.getE(key)
+	if err != nil {
+		return nil, err
 	}
-	return v
+	// string separator = ,
+	parts := strings.Split(v.(string), ",")
+	if len(parts) == 0 {
+		return []string{}, nil
+	}
+	sl := make([]string, len(parts))
+	for i, s := range parts {
+		sl[i] = strings.TrimSpace(s)
+	}
+	return sl, nil
+}
+
+func (c Basic) getTime(key string) (time.Time, error) {
+	v, err := c.getE(key)
+	if err != nil {
+		return time.Time{}, err
+	}
+	// in config time is represented by a int timestamp
+	ts, err := strconv.ParseInt(v.(string), 10, 64)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return time.Unix(ts, 0), nil
+}
+
+func (c Basic) getDuration(key string) (time.Duration, error) {
+	v, err := c.getE(key)
+	if err != nil {
+		return time.Duration(0), err
+	}
+	// in config duration is represented by string
+	return time.ParseDuration(v.(string))
 }

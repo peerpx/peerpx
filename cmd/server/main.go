@@ -5,6 +5,8 @@ import (
 	"path"
 	"path/filepath"
 
+	"net/http"
+
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	_ "github.com/jinzhu/gorm/dialects/postgres"
 	_ "github.com/jinzhu/gorm/dialects/sqlite"
@@ -140,10 +142,16 @@ func main() {
 	// search
 	e.GET("/api/v1/photo/search", handlers.PhotoSearch)
 
+	// API 404
+	e.Any("/api/*", func(c echo.Context) error {
+		return c.NoContent(http.StatusNotFound)
+	})
+
 	/////
 	// Client
 	e.Static("/", "./www")
-
+	e.File("/", "./www/index.html")
+	e.File("/signup", "./www/index.html")
 	e.Logger.Fatal(e.Start(":8080"))
 
 }

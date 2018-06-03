@@ -1,7 +1,6 @@
 package config
 
 import (
-	"strings"
 	"testing"
 
 	"time"
@@ -188,26 +187,4 @@ func configTest(t *testing.T) {
 	// invalid time
 	_, err = GetDurationE("invaliduration")
 	assert.Error(t, err)
-
-}
-
-// this will test config && basicconfig
-
-func TestConfig(t *testing.T) {
-	// todo not initialized
-
-	// init from empty reader
-	if assert.NoError(t, InitBasicConfig(strings.NewReader(""))) {
-		assert.NoError(t, Set("string", "value"))
-		assert.Panics(t, func() { Set("intasstring", 5) })
-		assert.NoError(t, Set("int", "6"))
-		assert.Equal(t, "value", GetString("string"))
-		assert.Equal(t, 6, GetInt("int"))
-	}
-
-	// init from file
-	if assert.NoError(t, InitBasicConfigFromFile("../../etc/samples/config_basic.test")) {
-		configTest(t)
-	}
-
 }

@@ -150,8 +150,8 @@ func main() {
 	/////
 	// Client
 	e.Static("/", "./www")
-	e.File("/", "./www/index.html")
-	e.File("/signup", "./www/index.html")
+	//e.File("/", "./www/index.html")
+	e.File("/a/*", "./www/index.html")
 	e.Logger.Fatal(e.Start(":8080"))
 
 }

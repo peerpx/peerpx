@@ -54,7 +54,7 @@ func GetE(key string) (interface{}, error) {
 func Get(key string) interface{} {
 	v, err := GetE(key)
 	if err != nil {
-		return nil
+		return interface{}("")
 	}
 	return v
 }
@@ -244,7 +244,7 @@ func GetStringP(key string) string {
 // slice and an error
 func GetStringSliceE(key string) ([]string, error) {
 	if conf == nil {
-		return nil, ErrNotInitialized
+		return []string{}, ErrNotInitialized
 	}
 	return conf.getStringSliceE(key)
 }
@@ -253,7 +253,7 @@ func GetStringSliceE(key string) ([]string, error) {
 func GetStringSlice(key string) []string {
 	v, err := GetStringSliceE(key)
 	if err != nil {
-		return nil
+		return []string{}
 	}
 	return v
 }

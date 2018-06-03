@@ -1,0 +1,14 @@
+# config file used for testing config
+int:12
+invalidInt: foo
+float64:1.2
+invalidFloat64: bar
+bool:true
+invalidBool: talse
+string: foo
+string2:foo:bar
+stringslice: foo, bar,    back
+time:1528031462
+invalidtime: midimoinslequartavantjc
+duration:2h45m
+invalidduration:2h45

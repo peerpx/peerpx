@@ -126,7 +126,7 @@ func (c Basic) getStringE(key string) (string, error) {
 func (c Basic) getStringSliceE(key string) ([]string, error) {
 	v, err := c.getE(key)
 	if err != nil {
-		return nil, err
+		return []string{}, err
 	}
 	// string separator = ,
 	parts := strings.Split(v.(string), ",")

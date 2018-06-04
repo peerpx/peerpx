@@ -21,7 +21,7 @@ func AuthRequired() echo.MiddlewareFunc {
 				u, err := user.GetByUsername(username.(string))
 				if err != nil {
 					if err == user.ErrNoSuchUser {
-						log.Errorf("%v - middleware.AuthRequired - ucookie is present but user %s is not found", c.RealIP(), username.(string))
+						log.Errorf("%v - middleware.AuthRequired - cookie is present but user %s is not found", c.RealIP(), username.(string))
 						return echo.ErrUnauthorized
 					}
 					log.Errorf("%v - middleware.AuthRequired - user.GetByUsername(%s) failed: %v", c.RealIP(), username.(string), err)

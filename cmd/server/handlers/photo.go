@@ -10,6 +10,8 @@ import (
 	"net/http"
 	"strconv"
 
+	"strings"
+
 	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 	"github.com/peerpx/peerpx/entities/photo"
@@ -145,8 +147,10 @@ func PhotoPost(c echo.Context) error {
 	if err = phot.Create(); err != nil {
 		log.Errorf("%v - controllers.PhotoPost - unable to photo.Create: %v", c.RealIP(), err)
 		// remove photo from datastore
-		if err = datastore.Delete(phot.Hash); err != nil {
-			log.Errorf("%v - controllers.PhotoPost - unable to remove photo %s datastore: %v", c.RealIP(), phot.Hash, err)
+		if !strings.HasPrefix(err.Error(), "UNIQUE") {
+			if err = datastore.Delete(phot.Hash); err != nil {
+				log.Errorf("%v - controllers.PhotoPost - unable to remove photo %s datastore: %v", c.RealIP(), phot.Hash, err)
+			}
 		}
 		return c.NoContent(http.StatusInternalServerError)
 	}

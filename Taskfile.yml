@@ -4,3 +4,6 @@ tasks:
   test:
     cmds:
     - go test ./...
+  coverreport:
+    cmds:
+    - go test -cover -coverprofile=/tmp/test.out ./... && go tool cover -html=/tmp/test.out

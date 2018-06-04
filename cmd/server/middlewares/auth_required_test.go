@@ -26,14 +26,14 @@ func TestAuthRequired(t *testing.T) {
 
 	// Via key in header
 	// valid Key
-	req.Header.Set("x-api-key", "QmU2TQthpXDj8QNK6jyqpWsjgDmr3E9Hn3F6zTahGGvZUC")
+	/*req.Header.Set("x-api-key", "QmU2TQthpXDj8QNK6jyqpWsjgDmr3E9Hn3F6zTahGGvZUC")
 	if assert.NoError(t, handler(ctx)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 	}
 
 	// invalid key
 	req.Header.Set("x-api-key", "dkfhsdjk")
-	assert.Equal(t, http.StatusForbidden, handler(ctx).(*echo.HTTPError).Code)
+	assert.Equal(t, http.StatusForbidden, handler(ctx).(*echo.HTTPError).Code)*/
 
 	// test cookie auth
 	mock := db.InitMockedDB("sqlmock_TestAuthRequired_1")

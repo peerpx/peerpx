@@ -28,6 +28,7 @@ func configTest(t *testing.T) {
 		GetP("noexist")
 	})
 	assert.Equal(t, "bar", GetDefault("noexists", "bar"))
+	assert.Equal(t, "foo", GetDefault("string", "bar").(string))
 
 	// int
 	// Get* on valid key
@@ -49,6 +50,7 @@ func configTest(t *testing.T) {
 		GetIntP("noexist")
 	})
 	assert.Equal(t, 666, GetIntDefault("noexists", 666))
+	assert.Equal(t, 12, GetIntDefault("int", 5))
 
 	// not a parsable int
 	_, err = GetIntE("invalidint")
@@ -73,6 +75,7 @@ func configTest(t *testing.T) {
 		GetFloat64P("noexist")
 	})
 	assert.Equal(t, 6.66, GetFloat64Default("noexists", 6.66))
+	assert.Equal(t, 1.2, GetFloat64Default("float64", 3.33))
 	// not a parsable float64
 	_, err = GetFloat64E("invalidfloat64")
 	assert.Error(t, err)
@@ -96,6 +99,7 @@ func configTest(t *testing.T) {
 		GetBoolP("noexist")
 	})
 	assert.Equal(t, true, GetBoolDefault("noexists", true))
+	assert.Equal(t, true, GetBoolDefault("bool", false))
 	// invalid bool
 	_, err = GetBoolE("invalidbool")
 	assert.Error(t, err)
@@ -119,6 +123,7 @@ func configTest(t *testing.T) {
 		GetStringP("noexist")
 	})
 	assert.Equal(t, "bar", GetStringDefault("noexists", "bar"))
+	assert.Equal(t, "foo", GetStringDefault("string", "bar"))
 
 	// string slice
 	assert.Equal(t, []string{"foo", "bar", "back"}, GetStringSlice("stringslice"))
@@ -139,6 +144,11 @@ func configTest(t *testing.T) {
 		GetStringSliceP("noexist")
 	})
 	assert.Equal(t, []string{"bar", "back"}, GetStringSliceDefault("noexists", []string{"bar", "back"}))
+	assert.Equal(t, []string{"foo", "bar", "back"}, GetStringSliceDefault("stringslice", []string{"bar", "back"}))
+	// empty slice
+	es, err := GetStringSliceE("empty")
+	assert.NoError(t, err)
+	assert.Equal(t, []string{}, es)
 
 	// time
 	goodTime := time.Unix(1528031462, 0)
@@ -160,6 +170,7 @@ func configTest(t *testing.T) {
 		GetTimeP("noexist")
 	})
 	assert.Equal(t, goodTime, GetTimeDefault("noexists", goodTime))
+	assert.Equal(t, goodTime, GetTimeDefault("time", time.Now()))
 	// invalid time
 	_, err = GetTimeE("invalidtime")
 	assert.Error(t, err)
@@ -184,7 +195,32 @@ func configTest(t *testing.T) {
 		GetDurationP("noexist")
 	})
 	assert.Equal(t, goodDuration, GetDurationDefault("noexists", goodDuration))
+	tduration, _ := time.ParseDuration("3m55s")
+	assert.Equal(t, goodDuration, GetDurationDefault("duration", tduration))
 	// invalid time
 	_, err = GetDurationE("invaliduration")
+	assert.Error(t, err)
+}
+
+func TestUnitialized(t *testing.T) {
+	conf = nil
+	assert.Error(t, Set("foo", "bar"))
+	_, err := GetE("foo")
+	assert.Error(t, err)
+	_, err = GetIntE("foo")
+	assert.Error(t, err)
+	_, err = GetFloat64E("foo")
+	assert.Error(t, err)
+	_, err = GetBoolE("foo")
+	assert.Error(t, err)
+	_, err = GetStringE("foo")
+	assert.Error(t, err)
+	_, err = GetStringSliceE("foo")
+	assert.Error(t, err)
+	_, err = GetTimeE("foo")
+	assert.Error(t, err)
+	_, err = GetDurationE("foo")
+	assert.Error(t, err)
+	_, err = IsSet("foo")
 	assert.Error(t, err)
 }

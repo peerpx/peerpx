@@ -37,7 +37,7 @@ func Set(key string, value interface{}) error {
 // IsSet returns whether or not a key is associated with a value
 func IsSet(key string) (bool, error) {
 	if conf == nil {
-		panic(ErrNotInitialized)
+		return false, ErrNotInitialized
 	}
 	return conf.isSet(key)
 }

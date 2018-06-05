@@ -26,7 +26,6 @@ func InitBasicConfig(r io.Reader) error {
 	b := Basic{
 		kv: make(map[string]string),
 	}
-
 	// scan file
 	scanner := bufio.NewScanner(r)
 	for scanner.Scan() {
@@ -57,7 +56,6 @@ func InitBasicConfigFromFile(path string) error {
 		return err
 	}
 	return InitBasicConfig(bytes.NewReader(r))
-
 }
 
 func (c Basic) set(key string, value interface{}) error {
@@ -130,7 +128,7 @@ func (c Basic) getStringSliceE(key string) ([]string, error) {
 	}
 	// string separator = ,
 	parts := strings.Split(v.(string), ",")
-	if len(parts) == 0 {
+	if len(parts) == 0 || len(parts[0]) == 0 {
 		return []string{}, nil
 	}
 	sl := make([]string, len(parts))

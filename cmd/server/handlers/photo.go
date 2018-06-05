@@ -36,6 +36,9 @@ func PhotoPost(c echo.Context) error {
 	// 1 bad photo format (jpeg or png)
 	// 2 bad data (not valid photo struct/object)
 	// 3 bad file
+	// 4 duplicate
+	// 404 not found
+	// 500 internal server error
 	response := PhotoPostResponse{}
 
 	// init photo
@@ -78,14 +81,18 @@ func PhotoPost(c echo.Context) error {
 	fd, err := photoFile[0].Open()
 	if err != nil {
 		log.Infof("%v - controllers.PhotoPost - unable to read photoFile: %v", c.RealIP(), err)
-		return c.NoContent(http.StatusInternalServerError)
+		response.Code = 500
+		response.Msg = "unable to read form file"
+		return c.JSON(http.StatusInternalServerError, response)
 	}
 	defer fd.Close()
 
 	photoBytes, err := ioutil.ReadAll(fd)
 	if err != nil {
 		log.Infof("%v - controllers.PhotoPost - unable to ioutil.ReadAll(fd): %v", c.RealIP(), err)
-		return c.NoContent(http.StatusInternalServerError)
+		response.Code = 500
+		response.Msg = "unable to read form file #2"
+		return c.JSON(http.StatusInternalServerError, response)
 	}
 
 	// check type
@@ -101,13 +108,17 @@ func PhotoPost(c echo.Context) error {
 	img, err := image.NewFromBytes(photoBytes)
 	if err != nil {
 		log.Errorf("%v - controllers.PhotoPost - unable to core.NewImageFromBytes(): %v", c.RealIP(), err)
-		return c.NoContent(http.StatusInternalServerError)
+		response.Code = 500
+		response.Msg = "unable to create new image"
+		return c.JSON(http.StatusInternalServerError, response)
 	}
 	if img.Width() > config.GetIntDefault("photo.maxWidth", 2000) || img.Height() > config.GetIntDefault("photo.maxHeight", 2000) {
 		err = img.ResizeToFit(config.GetIntDefault("photo.maxWidth", 2000), config.GetIntDefault("photo.maxHeight", 2000))
 		if err != nil && err != image.ErrUpscaleNotAllowed {
 			log.Errorf("%v - controllers.PhotoPost - unable to img.ResizeToFit(): %v", c.RealIP(), err)
-			return c.NoContent(http.StatusInternalServerError)
+			response.Code = 500
+			response.Msg = "unable to resize image"
+			return c.JSON(http.StatusInternalServerError, response)
 		}
 	}
 
@@ -115,14 +126,18 @@ func PhotoPost(c echo.Context) error {
 	photoBytes, err = img.JPEG(100)
 	if err != nil {
 		log.Errorf("%v - controllers.PhotoPost - unable to img.JPEG(): %v", c.RealIP(), err)
-		return c.NoContent(http.StatusInternalServerError)
+		response.Code = 500
+		response.Msg = "unable to convert image to JPEG"
+		return c.JSON(http.StatusInternalServerError, response)
 	}
 
 	// get hash
 	phot.Hash, err = hasher.GetHash(photoBytes)
 	if err != nil {
 		log.Errorf("%v - controllers.PhotoPost - unable to get photo hash: %v", c.RealIP(), err)
-		return c.NoContent(http.StatusInternalServerError)
+		response.Code = 500
+		response.Msg = "unable to get hash from image"
+		return c.JSON(http.StatusInternalServerError, response)
 	}
 
 	//  size
@@ -140,7 +155,9 @@ func PhotoPost(c echo.Context) error {
 	// save in datastore
 	if err = datastore.Put(phot.Hash, photoBytes); err != nil {
 		log.Errorf("%v - controllers.PhotoPost - unable to store photo in datastore: %v", c.RealIP(), err)
-		return c.NoContent(http.StatusInternalServerError)
+		response.Code = 500
+		response.Msg = "unable to save image to datastore"
+		return c.JSON(http.StatusInternalServerError, response)
 	}
 
 	// create entry in DB
@@ -151,8 +168,14 @@ func PhotoPost(c echo.Context) error {
 			if err = datastore.Delete(phot.Hash); err != nil {
 				log.Errorf("%v - controllers.PhotoPost - unable to remove photo %s datastore: %v", c.RealIP(), phot.Hash, err)
 			}
+			response.Code = 4
+			response.Msg = "duplicate"
+			return c.JSON(http.StatusBadRequest, response)
 		}
-		return c.NoContent(http.StatusInternalServerError)
+		response.Code = 500
+		response.Msg = "unable to save image to DB"
+		return c.JSON(http.StatusInternalServerError, response)
+
 	}
 
 	// return response

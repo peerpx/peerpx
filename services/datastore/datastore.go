@@ -3,7 +3,7 @@ package datastore
 import "errors"
 
 // DS global datastore
-var ds Datastore
+var ds Provider
 
 // errors
 var (
@@ -14,8 +14,8 @@ var (
 	ErrNotFound = errors.New("datastore: key not found")
 )
 
-// Datastore represents the storage interface
-type Datastore interface {
+// Provider represents the storage interface interafce
+type Provider interface {
 	put(key string, value []byte) error
 
 	get(key string) (value []byte, err error)

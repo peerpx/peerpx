@@ -7,16 +7,16 @@ var (
 	ErrNotInitialized = errors.New("cache: service not initialized")
 )
 
-var cache CacheProvider
+var cache Provider
 
-// CacheProvider
-type CacheProvider interface {
+// Provider interface representing cache provider
+type Provider interface {
 	get(key string) ([]byte, error)
 	set(key string, value []byte) error
 	del(key string) error
 }
 
-// Get
+// Get returns value associated with key or error
 func Get(key string) ([]byte, error) {
 	if cache == nil {
 		return nil, ErrNotInitialized
@@ -24,7 +24,7 @@ func Get(key string) ([]byte, error) {
 	return cache.get(key)
 }
 
-// Set
+// Set put value associated with key key in cache
 func Set(key string, value []byte) error {
 	if cache == nil {
 		return ErrNotInitialized
@@ -32,7 +32,7 @@ func Set(key string, value []byte) error {
 	return cache.set(key, value)
 }
 
-// Del
+// Del delete key->value from cache
 func Del(key string) error {
 	if cache == nil {
 		return ErrNotInitialized

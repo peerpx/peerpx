@@ -5,13 +5,13 @@ import (
 	"time"
 )
 
-var conf Config
+var conf Provider
 
 // errors
 var ErrNotInitialized = errors.New("config: service not initialized")
 
-// Config is the config service interface
-type Config interface {
+// Provider is the config provider interface
+type Provider interface {
 	set(key string, value interface{}) error
 	isSet(key string) (bool, error)
 	getE(key string) (interface{}, error)

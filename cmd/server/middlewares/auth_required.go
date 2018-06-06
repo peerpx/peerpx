@@ -3,7 +3,7 @@ package middlewares
 import (
 	"github.com/labstack/echo"
 	"github.com/peerpx/peerpx/entities/user"
-	log "github.com/sirupsen/logrus"
+	"github.com/peerpx/peerpx/services/log"
 )
 
 // AuthRequired check auth

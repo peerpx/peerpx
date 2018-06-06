@@ -19,7 +19,7 @@ import (
 	"github.com/peerpx/peerpx/pkg/image"
 	"github.com/peerpx/peerpx/services/config"
 	"github.com/peerpx/peerpx/services/datastore"
-	log "github.com/sirupsen/logrus"
+	"github.com/peerpx/peerpx/services/log"
 )
 
 // PhotoPostResponse is the response sent by PhotoPost ctrl

@@ -23,36 +23,6 @@ type Licence uint8
 type Comment struct {
 }
 
-/*
-// PhotoPublicProperties respo
-type PhotoProperties struct {
-	Hash         string          `json:"hash"`
-	Name         string          `json:"name"`
-	Description  string          `json:"description"`
-	camera       string          `json:"camera"`
-	Lens         string          `json:"lens"`
-	FocalLength  uint16          `json:"focalLength"`
-	Iso          uint16          `json:"iso"`
-	ShutterSpeed string          `json:"shutterSpeed"`
-	Aperture     float32         `json:"aperture"`
-	TimeViewed   uint64          `json:"timeViewed"`
-	Rating       float32         `json:"rating"`
-	Category     models.Category `json:"category"`
-	Location     string          `json:"location"`
-	Privacy      bool            `json:"privacy"` // true if private
-	Latitude     float32         `json:"latitude"`
-	Longitude    float32         `json:"longitude"`
-	TakenAt      time.Time       `json:"takenAt"`
-	Width        uint32          `json:"width"`
-	Height       uint32          `json:"height"`
-	Nsfw         bool            `json:"nsfw"`
-	LicenceType  models.Licence  `json:"licenceType"`
-	URL          string          `json:"url"`
-	User         string          `json:"user"` // @user@instance
-	Tags         []models.Tag    `json:"tags"`
-}
-*/
-
 // Photo represents a Photo
 type Photo struct {
 	gorm.Model   `json:"-"`

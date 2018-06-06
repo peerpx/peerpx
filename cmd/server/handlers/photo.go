@@ -175,7 +175,6 @@ func PhotoPost(c echo.Context) error {
 		response.Code = 500
 		response.Msg = "unable to save image to DB"
 		return c.JSON(http.StatusInternalServerError, response)
-
 	}
 
 	// return response

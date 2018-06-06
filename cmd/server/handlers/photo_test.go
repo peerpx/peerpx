@@ -111,7 +111,7 @@ func TestPhotoPostNotAPhoto(t *testing.T) {
 		var response PhotoPostResponse
 		err = json.Unmarshal(resp, &response)
 		assert.NoError(t, err)
-		assert.Equal(t, uint8(1), response.Code)
+		assert.Equal(t, uint16(1), response.Code)
 	}
 }
 

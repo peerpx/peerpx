@@ -25,7 +25,7 @@ import (
 // PhotoPostResponse is the response sent by PhotoPost ctrl
 // TODO exif
 type PhotoPostResponse struct {
-	Code       uint8       `json:"code"`
+	Code       uint16      `json:"code"`
 	Msg        string      `json:"msg"`
 	PhotoProps photo.Photo `json:"photoProps"`
 }

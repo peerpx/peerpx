@@ -108,7 +108,7 @@ func DeleteByHash(hash string) error {
 
 // List list photos regarding optional args
 func List(args ...interface{}) (photos []Photo, err error) {
-	err = db.DB.Find(&photos).Error
+	err = db.DB.Order("id desc").Find(&photos).Error
 	if err != nil && err != gorm.ErrRecordNotFound {
 		return photos, err
 	}

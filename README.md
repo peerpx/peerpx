@@ -1,1 +1,1 @@
-# peerpx
+# PeerPx [![Build Status](https://travis-ci.org/peerpx/peerpx.svg?branch=master)](https://travis-ci.org/peerpx/peerpx)

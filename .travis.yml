@@ -3,4 +3,8 @@ language: go
 go:
   - 1.10
 
-script: go ./...
+before_script:
+  - go get -t ./...
+
+script:
+  - go test -v ./...

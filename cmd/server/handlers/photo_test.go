@@ -309,7 +309,5 @@ func TestPhotoPut(t *testing.T) {
 			assert.Equal(t, int64(1526915045), response.Photo.TakenAt.Unix())
 			assert.Equal(t, false, response.Photo.Nsfw)
 		}
-
 	}
-
 }

@@ -68,7 +68,7 @@ func MapperFunc(mf func(string) string) {
 	if db == nil {
 		panic(ErrNotInitialized)
 	}
-	db.Mapper(mf)
+	db.MapperFunc(mf)
 }
 
 func MustBegin() *sqlx.Tx {
@@ -84,6 +84,7 @@ func MustBeginTx(ctx context.Context, opts *sql.TxOptions) *sqlx.Tx {
 	}
 	return db.MustBeginTx(ctx, opts)
 }
+
 func MustExec(query string, args ...interface{}) sql.Result {
 	if db == nil {
 		panic(ErrNotInitialized)
@@ -128,7 +129,7 @@ func NamedQueryContext(ctx context.Context, query string, arg interface{}) (*sql
 
 func PrepareNamed(query string) (*sqlx.NamedStmt, error) {
 	if db == nil {
-		return err, ErrNotInitialized
+		return nil, ErrNotInitialized
 	}
 	return db.PrepareNamed(query)
 }
@@ -160,12 +161,14 @@ func QueryRowx(query string, args ...interface{}) *sqlx.Row {
 	}
 	return db.QueryRowx(query, args)
 }
+
 func QueryRowxContext(ctx context.Context, query string, args ...interface{}) *sqlx.Row {
 	if db == nil {
 		panic(ErrNotInitialized)
 	}
 	return db.QueryRowxContext(ctx, query, args)
 }
+
 func Queryx(query string, args ...interface{}) (*sqlx.Rows, error) {
 	if db == nil {
 		return nil, ErrNotInitialized
@@ -199,6 +202,7 @@ func SelectContext(ctx context.Context, dest interface{}, query string, args ...
 	}
 	return db.SelectContext(ctx, dest, query, args)
 }
+
 func Unsafe() *sqlx.DB {
 	if db == nil {
 		panic(ErrNotInitialized)

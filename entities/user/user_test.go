@@ -12,6 +12,10 @@ import (
 	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 )
 
+func init() {
+	db.InitMockedDatabase()
+}
+
 func TestCreate(t *testing.T) {
 	config.InitBasicConfig(strings.NewReader(""))
 	// bad email
@@ -38,10 +42,9 @@ func TestCreate(t *testing.T) {
 	_, err = Create("foo@bar.com", "jojo", "bla")
 	assert.EqualError(t, err, "password must be at least 6 char long")
 
-	// good
-	mock := db.InitMockedDB("sqlmock_db_usercreate")
-	defer db.DB.Close()
-	mock.ExpectExec("^INSERT INTO \"users\"(.*)").WillReturnResult(sqlmock.NewResult(1, 1))
+	db.Mock.ExpectPrepare("^INSERT INTO users (.*)").
+		ExpectExec().
+		WillReturnResult(sqlmock.NewResult(1, 1))
 	user, err := Create("FOo@Bar.com", "jojo", "blablabla")
 	if assert.NoError(t, err) {
 		assert.Equal(t, uint(1), user.ID)
@@ -52,10 +55,8 @@ func TestCreate(t *testing.T) {
 
 func TestLogin(t *testing.T) {
 	// by mail
-	mock := db.InitMockedDB("sqlmock_db_userlogin")
-	defer db.DB.Close()
 	row := sqlmock.NewRows([]string{"id", "username", "email", "password"}).AddRow(1, "john", "john@doe.com", "$2y$10$vjxV/XuyPaPuINLopc49COmFfxEiVFac4m0L7GgqvJ.KAQcfpmvCa")
-	mock.ExpectQuery("^SELECT(.*)").WillReturnRows(row)
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnRows(row)
 	user, err := Login("john@doe.com", "secret")
 	if assert.NoError(t, err) {
 		assert.Equal(t, uint(1), user.ID)
@@ -65,7 +66,7 @@ func TestLogin(t *testing.T) {
 
 	// bu username
 	row = sqlmock.NewRows([]string{"id", "username", "email", "password"}).AddRow(1, "john", "john@doe.com", "$2y$10$vjxV/XuyPaPuINLopc49COmFfxEiVFac4m0L7GgqvJ.KAQcfpmvCa")
-	mock.ExpectQuery("^SELECT(.*)").WillReturnRows(row)
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnRows(row)
 	user, err = Login("john", "secret")
 	if assert.NoError(t, err) {
 		assert.Equal(t, uint(1), user.ID)
@@ -74,13 +75,12 @@ func TestLogin(t *testing.T) {
 	}
 
 	row = sqlmock.NewRows([]string{"id", "username", "email", "password"}).AddRow(1, "john", "john@doe.com", "$2y$10$vjxV/XuyPaPdfdfuINLopc49COmFfxEiVFac4m0L7GgqvJ.KAQcfpmvCa")
-	mock.ExpectQuery("^SELECT(.*)").WillReturnRows(row)
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnRows(row)
 	user, err = Login("john", "secret")
 	assert.EqualError(t, err, "no such user")
 
 	// ErrNoSuchUser
-	mock.ExpectQuery("^SELECT(.*)").WillReturnError(gorm.ErrRecordNotFound)
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(gorm.ErrRecordNotFound)
 	user, err = Login("john", "secret")
 	assert.EqualError(t, err, "no such user")
-
 }

@@ -7,7 +7,6 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"github.com/jinzhu/gorm"
 	"github.com/peerpx/peerpx/services/config"
 	"github.com/peerpx/peerpx/services/db"
 	"golang.org/x/crypto/bcrypt"
@@ -15,25 +14,25 @@ import (
 
 // User represent an user
 type User struct {
-	gorm.Model `json:"-"`
-	Username   string `gorm:"type:varchar(255);unique_index" json:"username"`
-	Email      string `gorm:"unique_index" json:"email"`
-	Password   string `json:"-"`
-	Firstname  string `json:"firstname"`
-	Lastname   string `json:"lastname"`
-	Gender     Gender `json:"gender"`
-	Address    string `json:"address"`
-	City       string `json:"city"`
-	State      string `json:"state"`
-	Zip        string `json:"zip"`
-	Country    string `json:"country"`
-	About      string `json:"about"`
-	Locale     string `json:"locale"` // char(2)
-	ShowNsfw   bool   `json:"show_nsfw"`
-	UserURL    string `json:"user_url"`
-	Admin      bool   `json:"admin"`
-	AvatarURL  string `json:"avatar_url"`
-	APIKey     string `json:"-"`
+	ID        uint   `json:"id"`
+	Username  string `json:"username"`
+	Email     string `json:"email"`
+	Password  string `json:"-"`
+	Firstname string `json:"firstname"`
+	Lastname  string `json:"lastname"`
+	Gender    Gender `json:"gender"`
+	Address   string `json:"address"`
+	City      string `json:"city"`
+	State     string `json:"state"`
+	Zip       string `json:"zip"`
+	Country   string `json:"country"`
+	About     string `json:"about"`
+	Locale    string `json:"locale"` // char(2)
+	ShowNsfw  bool   `json:"show_nsfw"`
+	UserURL   string `json:"user_url"`
+	Admin     bool   `json:"admin"`
+	AvatarURL string `json:"avatar_url"`
+	APIKey    string `json:"-"`
 }
 
 // Gender is the user gender
@@ -61,6 +60,7 @@ func Create(email, username, clearPassword string) (user *User, err error) {
 	if _, err = mail.ParseAddress(email); err != nil {
 		return nil, fmt.Errorf("%s is not a valid email", email)
 	}
+
 	// username length
 	username = strings.ToLower(username)
 	usernameLength := utf8.RuneCountInString(username)
@@ -95,7 +95,7 @@ func Create(email, username, clearPassword string) (user *User, err error) {
 // UserGetByID return user by its ID
 func UserGetByID(id int) (user *User, err error) {
 	user = new(User)
-	err = db.DB.Find(user).Where("id = ?", id).Error
+	err = db.Get(user, "SELECT * FROM users WHERE id=$1", id)
 	return
 }
 
@@ -103,7 +103,7 @@ func UserGetByID(id int) (user *User, err error) {
 func GetByUsername(username string) (user *User, err error) {
 	user = new(User)
 	username = strings.TrimSpace(strings.ToLower(username))
-	err = db.DB.Find(user).Where("username = ?", username).Error
+	err = db.Get(user, "SELECT * FROM users WHERE username=$1", username)
 	return
 }
 
@@ -111,7 +111,7 @@ func GetByUsername(username string) (user *User, err error) {
 func GetByEmail(email string) (user *User, err error) {
 	user = new(User)
 	email = strings.TrimSpace(strings.ToLower(email))
-	err = db.DB.Find(user).Where("email = ?", email).Error
+	err = db.Get(user, "SELECT * FROM users WHERE email=?", email)
 	return
 }
 
@@ -129,8 +129,8 @@ func Login(login, password string) (user *User, err error) {
 		user, err = GetByUsername(login)
 	}
 	if err != nil {
-		switch err {
-		case gorm.ErrRecordNotFound:
+		switch err.Error() {
+		case "record not found":
 			return nil, ErrNoSuchUser
 		default:
 			return nil, err
@@ -148,7 +148,17 @@ func Login(login, password string) (user *User, err error) {
 
 // Create save new user in DB
 func (u *User) Create() error {
-	return db.DB.Create(u).Error
+	stmt, err := db.Preparex("INSERT INTO users (username,firstname,lastname,gender,email,address,city,state,zip,country,about,locale,show_nsfw,user_url,admin,avatar_url,api_key,password) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+	if err != nil {
+		return err
+	}
+	res, err := stmt.Exec(u.Username, u.Firstname, u.Lastname, u.Gender, u.Email, u.Address, u.City, u.State, u.Zip, u.Country, u.About, u.Locale, u.ShowNsfw, u.UserURL, u.Admin, u.AvatarURL, u.APIKey, u.Password)
+	if err != nil {
+		return err
+	}
+	id, err := res.LastInsertId()
+	u.ID = uint(id)
+	return err
 }
 
 // Update update user in DB
@@ -156,5 +166,16 @@ func (u *User) Update() error {
 	if u.ID == 0 {
 		return errors.New("user unknown in database")
 	}
-	return db.DB.Update(u).Error
+	stmt, err := db.Preparex("UPDATE users SET username = ?, firstname = ?, lastname = ?, gender = ?, email = ?, address = ?, city = ?, state  = ?, zip = ?, country = ?, about = ?, locale = ?, show_nsfw = ?, user_url = ?, admin = ?, avatar_url = ?, api_key = ?, password = ?")
+	if err != nil {
+		return err
+	}
+	res, err := stmt.Exec(u.Username, u.Firstname, u.Lastname, u.Gender, u.Email, u.Address, u.City, u.State, u.Zip, u.Country, u.About, u.Locale, u.ShowNsfw, u.UserURL, u.Admin, u.AvatarURL, u.APIKey, u.Password)
+	if err != nil {
+		return err
+	}
+	id, err := res.LastInsertId()
+	u.ID = uint(id)
+	return err
+
 }

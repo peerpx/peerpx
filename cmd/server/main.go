@@ -14,8 +14,6 @@ import (
 	"github.com/labstack/echo/middleware"
 	"github.com/peerpx/peerpx/cmd/server/handlers"
 	"github.com/peerpx/peerpx/cmd/server/middlewares"
-	"github.com/peerpx/peerpx/entities/photo"
-	"github.com/peerpx/peerpx/entities/user"
 	"github.com/peerpx/peerpx/services/config"
 	"github.com/peerpx/peerpx/services/datastore"
 	"github.com/peerpx/peerpx/services/db"
@@ -44,19 +42,13 @@ func main() {
 	// init logger props
 
 	// init DB
-	if err = db.InitDB(); err != nil {
+	if err = db.InitDatabase("sqlite3", "peerpx.db"); err != nil {
 		log.Errorf("DB initialization failed: %v ", err)
 		os.Exit(1)
 	}
-	defer db.DB.Close()
-	//log.Info("DB initialized")
 
 	// Migrate the schema
-	// TODO add option (its useless to migrate DB @each run)
-	if err = db.DB.AutoMigrate(&user.User{}, &photo.Photo{}).Error; err != nil {
-		log.Errorf("unable to migrate DB: %v", err)
-		os.Exit(1)
-	}
+	// TODO check schema
 
 	// init datastore
 	if err = datastore.InitFilesystemDatastore(config.GetStringDefault(("datastore.path"), path.Join(workingDir, "datastore"))); err != nil {

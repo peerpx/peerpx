@@ -6,7 +6,10 @@ import (
 
 	"database/sql"
 
+	"fmt"
+
 	"github.com/jmoiron/sqlx"
+	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 )
 
 var (
@@ -15,11 +18,24 @@ var (
 )
 
 var db *sqlx.DB
+var Mock sqlmock.Sqlmock
 
 // InitDatabase init database handler
 func InitDatabase(driverName, dataSourceName string) (err error) {
 	db, err = sqlx.Open(driverName, dataSourceName)
 	return err
+}
+
+// InitMockedDatabase initialize a mocked DB for testing purpose
+// https://github.com/jmoiron/sqlx/issues/204
+func InitMockedDatabase() {
+	var err error
+	var mockDB *sql.DB
+	mockDB, Mock, err = sqlmock.New()
+	if err != nil {
+		panic(fmt.Sprintf("slqmock initialization failed: %v", err))
+	}
+	db = sqlx.NewDb(mockDB, "sqlmock")
 }
 
 func BeginTxx(ctx context.Context, opts *sql.TxOptions) (*sqlx.Tx, error) {
@@ -54,14 +70,14 @@ func Get(dest interface{}, query string, args ...interface{}) error {
 	if db == nil {
 		return ErrNotInitialized
 	}
-	return db.Get(dest, query, args)
+	return db.Get(dest, query, args...)
 }
 
 func GetContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error {
 	if db == nil {
 		return ErrNotInitialized
 	}
-	return db.GetContext(ctx, dest, query, args)
+	return db.GetContext(ctx, dest, query, args...)
 }
 
 func MapperFunc(mf func(string) string) {
@@ -89,14 +105,14 @@ func MustExec(query string, args ...interface{}) sql.Result {
 	if db == nil {
 		panic(ErrNotInitialized)
 	}
-	return db.MustExec(query, args)
+	return db.MustExec(query, args...)
 }
 
 func MustExecContext(ctx context.Context, query string, args ...interface{}) sql.Result {
 	if db == nil {
 		panic(ErrNotInitialized)
 	}
-	return db.MustExecContext(ctx, query, args)
+	return db.MustExecContext(ctx, query, args...)
 }
 
 func NamedExec(query string, arg interface{}) (sql.Result, error) {
@@ -159,28 +175,28 @@ func QueryRowx(query string, args ...interface{}) *sqlx.Row {
 	if db == nil {
 		panic(ErrNotInitialized)
 	}
-	return db.QueryRowx(query, args)
+	return db.QueryRowx(query, args...)
 }
 
 func QueryRowxContext(ctx context.Context, query string, args ...interface{}) *sqlx.Row {
 	if db == nil {
 		panic(ErrNotInitialized)
 	}
-	return db.QueryRowxContext(ctx, query, args)
+	return db.QueryRowxContext(ctx, query, args...)
 }
 
 func Queryx(query string, args ...interface{}) (*sqlx.Rows, error) {
 	if db == nil {
 		return nil, ErrNotInitialized
 	}
-	return db.Queryx(query, args)
+	return db.Queryx(query, args...)
 }
 
 func QueryxContext(ctx context.Context, query string, args ...interface{}) (*sqlx.Rows, error) {
 	if db == nil {
 		return nil, ErrNotInitialized
 	}
-	return db.QueryxContext(ctx, query, args)
+	return db.QueryxContext(ctx, query, args...)
 }
 
 func Rebind(query string) string {
@@ -193,14 +209,14 @@ func Select(dest interface{}, query string, args ...interface{}) error {
 	if db == nil {
 		return ErrNotInitialized
 	}
-	return db.Select(dest, query, args)
+	return db.Select(dest, query, args...)
 }
 
 func SelectContext(ctx context.Context, dest interface{}, query string, args ...interface{}) error {
 	if db == nil {
 		return ErrNotInitialized
 	}
-	return db.SelectContext(ctx, dest, query, args)
+	return db.SelectContext(ctx, dest, query, args...)
 }
 
 func Unsafe() *sqlx.DB {

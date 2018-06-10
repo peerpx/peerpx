@@ -5,8 +5,13 @@ import (
 
 	"time"
 
+	"github.com/peerpx/peerpx/services/db"
 	"github.com/stretchr/testify/assert"
 )
+
+func init() {
+	db.InitMockedDatabase()
+}
 
 func TestPhoto_Validate(t *testing.T) {
 	const longString = "6hRRCtSTRK53GQEItACt7Uryq90dVBZfoqOzNFOAb6F3SvS0kcUzRNpfBo7FONRubzDznAO9PlqN5yHr2HWK3gXNdZKAKw0e4fsEk4aSkc4eTPounHQwLmtQo8pyVGPsnpe8M5mwbRQSoj2rQlmmAhcCj1BtfbibF0UemN4Ya6DSibjyHyM8zKDXccVwmQ4ZbXHDC5XMsKIivoFga8EgHWCcQ0qrjSzBAilVwuUpNHoXumIOYqF1QOvGfCPLYW21"

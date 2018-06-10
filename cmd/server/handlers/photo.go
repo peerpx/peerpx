@@ -288,7 +288,7 @@ func PhotoPut(c echo.Context) error {
 	}
 
 	// return photo
-	response.Photo = &photoOri
+	response.Photo = photoOri
 	return c.JSON(http.StatusOK, response)
 }
 

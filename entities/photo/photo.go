@@ -4,7 +4,6 @@ import (
 	"errors"
 	"time"
 
-	"github.com/jinzhu/gorm"
 	"github.com/peerpx/peerpx/entities/user"
 	"github.com/peerpx/peerpx/services/datastore"
 	"github.com/peerpx/peerpx/services/db"
@@ -25,6 +24,7 @@ type Comment struct {
 
 // Photo represents a Photo
 type Photo struct {
+	ID           uint      `json:"id"`
 	Hash         string    `json:"hash"`
 	Name         string    `json:"name"`
 	Description  string    `json:"description"`
@@ -41,6 +41,7 @@ type Photo struct {
 	Privacy      bool      `json:"privacy"` // true if private
 	Latitude     float32   `json:"latitude"`
 	Longitude    float32   `json:"longitude"`
+	AddedAt      time.Time `json:"added_at"`
 	TakenAt      time.Time `json:"taken_at"`
 	Width        uint32    `json:"width"`
 	Height       uint32    `json:"height"`
@@ -82,24 +83,39 @@ func DeleteByHash(hash string) error {
 
 // List list photos regarding optional args
 func List(args ...interface{}) (photos []Photo, err error) {
-	err = db.DB.Order("id desc").Find(&photos).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
-		return photos, err
-	}
+	err = db.Select(photos, "SELECT * FROM photo ORDER BY id DESC")
 	return
 }
 
 // Create save new photo in DB
 func (p *Photo) Create() error {
-	return db.DB.Create(p).Error
+	stmt, err := db.Preparex("INSERT INTO photos (added_at, hash, name, description, camera,lens,focal_length,iso, shutter_speed, aperture, time_viewed, rating, category , location, privacy, latitude, longitude, taken_at, width, height, nsfw, licence_type, url) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+	if err != nil {
+		return err
+	}
+	res, err := stmt.Exec(time.Now(), p.Hash, p.Name, p.Description, p.Camera, p.Lens, p.FocalLength, p.Iso, p.ShutterSpeed, p.Aperture, p.TimeViewed, p.Rating, p.Category, p.Location, p.Privacy, p.Latitude, p.Longitude, p.TakenAt, p.Width, p.Height, p.Nsfw, p.LicenceType, p.URL)
+	if err != nil {
+		return err
+	}
+	id, err := res.LastInsertId()
+	if err != nil {
+		return err
+	}
+	p.ID = uint(id)
+	return nil
 }
 
 // Update update photo in DB
 func (p *Photo) Update() error {
 	if p.ID == 0 {
-		return errors.New("photo is not recoded in DB yet, i can't update it")
+		return errors.New("photo is not recoded in DB yet, i can't update it !")
 	}
-	return db.DB.Save(p).Error
+	stmt, err := db.Preparex("UPDATE photos SET added_at=?, hash=?, name=?, description=?, camera=?, lens=?, focal_length=?, iso=?, shutter_speed=?, aperture=?, time_viewed=?, rating=?, category=?, location=?, privacy=?, latitude=?, longitude=?, taken_at=?, width=?, height=?, nsfw=?, licence_type=?, url=? WHERE id=?")
+	if err != nil {
+		return err
+	}
+	_, err = stmt.Exec(time.Now(), p.Hash, p.Name, p.Description, p.Camera, p.Lens, p.FocalLength, p.Iso, p.ShutterSpeed, p.Aperture, p.TimeViewed, p.Rating, p.Category, p.Location, p.Privacy, p.Latitude, p.Longitude, p.TakenAt, p.Width, p.Height, p.Nsfw, p.LicenceType, p.URL, p.ID)
+	return err
 }
 
 // Validate check if photo properties are valid

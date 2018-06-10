@@ -29,6 +29,9 @@ func InitDatabase(driverName, dataSourceName string) (err error) {
 // InitMockedDatabase initialize a mocked DB for testing purpose
 // https://github.com/jmoiron/sqlx/issues/204
 func InitMockedDatabase() {
+	if db != nil && Mock != nil {
+		return
+	}
 	var err error
 	var mockDB *sql.DB
 	mockDB, Mock, err = sqlmock.New()

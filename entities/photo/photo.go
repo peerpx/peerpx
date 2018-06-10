@@ -25,38 +25,38 @@ type Comment struct {
 
 // Photo represents a Photo
 type Photo struct {
-	gorm.Model   `json:"-"`
-	Hash         string `gorm:"type:varchar(100);unique_index"` // sha256 + base58 ?
-	Name         string
-	Description  string
-	Camera       string
-	Lens         string
-	FocalLength  uint16
-	Iso          uint16
-	ShutterSpeed string  // or float ? "1/250" vs 0.004
-	Aperture     float32 // 5.6, 32, 1.4
-	TimeViewed   uint64
-	Rating       float32
-	Category     Category
-	Location     string
-	Privacy      bool // true if private
-	Latitude     float32
-	Longitude    float32
-	TakenAt      time.Time
-	Width        uint32
-	Height       uint32
-	Nsfw         bool
-	LicenceType  Licence
-	URL          string
-	User         user.User
+	Hash         string    `json:"hash"`
+	Name         string    `json:"name"`
+	Description  string    `json:"description"`
+	Camera       string    `json:"camera"`
+	Lens         string    `json:"lens"`
+	FocalLength  uint16    `json:"focal_length"`
+	Iso          uint16    `json:"iso"`
+	ShutterSpeed string    `json:"shutter_speed"` // or float ? "1/250" vs 0.004
+	Aperture     float32   `json:"aperture"`      // 5.6, 32, 1.4
+	TimeViewed   uint64    `json:"time_viewed"`
+	Rating       float32   `json:"rating"`
+	Category     Category  `json:"category"`
+	Location     string    `json:"location"`
+	Privacy      bool      `json:"privacy"` // true if private
+	Latitude     float32   `json:"latitude"`
+	Longitude    float32   `json:"longitude"`
+	TakenAt      time.Time `json:"taken_at"`
+	Width        uint32    `json:"width"`
+	Height       uint32    `json:"height"`
+	Nsfw         bool      `json:"nsfw"`
+	LicenceType  Licence   `json:"licence_type"`
+	URL          string    `json:"url"`
+	User         user.User `json:"user"`
 	// Todo remove
-	Comments []Comment `gorm:"-" json:"-"`
-	Tags     []Tag     `gorm:"-"`
+	Comments []Comment `json:"-"`
+	Tags     []Tag     `json:"-"`
 }
 
 // GetByHash return photo from its hash
-func GetByHash(hash string) (photo Photo, err error) {
-	err = db.DB.Find(&photo).Where("hash = ?", hash).Error
+func GetByHash(hash string) (photo *Photo, err error) {
+	photo = new(Photo)
+	err = db.Get(photo, "SELECT * FROM photo WHERE hash = ?", hash)
 	// todo load user
 	// todo load tags ?
 	return
@@ -65,8 +65,12 @@ func GetByHash(hash string) (photo Photo, err error) {
 // DeleteByHash delete photo from DB and datastore
 // we don't care if photo is not found
 func DeleteByHash(hash string) error {
-	err := db.DB.Unscoped().Where("hash = ?", hash).Delete(Photo{}).Error
-	if err != nil && err != gorm.ErrRecordNotFound {
+	stmt, err := db.Preparex("DELETE FROM photo WHERE hash = ?")
+	if err != nil {
+		return err
+	}
+	_, err = stmt.Exec(hash)
+	if err != nil {
 		return err
 	}
 	err = datastore.Delete(hash)

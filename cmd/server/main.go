@@ -1,15 +1,11 @@
 package main
 
 import (
+	"net/http"
 	"os"
 	"path"
 	"path/filepath"
 
-	"net/http"
-
-	_ "github.com/jinzhu/gorm/dialects/mysql"
-	_ "github.com/jinzhu/gorm/dialects/postgres"
-	_ "github.com/jinzhu/gorm/dialects/sqlite"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
 	"github.com/peerpx/peerpx/cmd/server/handlers"
@@ -18,6 +14,10 @@ import (
 	"github.com/peerpx/peerpx/services/datastore"
 	"github.com/peerpx/peerpx/services/db"
 	"github.com/peerpx/peerpx/services/log"
+
+	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/lib/pq"
+	_ "github.com/mattn/go-sqlite3"
 )
 
 func main() {

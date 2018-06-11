@@ -13,7 +13,8 @@ import (
 
 	"strings"
 
-	"github.com/jinzhu/gorm"
+	"database/sql"
+
 	"github.com/labstack/echo"
 	"github.com/peerpx/peerpx/services/config"
 	"github.com/peerpx/peerpx/services/datastore"
@@ -21,6 +22,10 @@ import (
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 )
+
+func init() {
+	db.InitMockedDatabase()
+}
 
 func handleErr(err error) {
 	if err != nil {
@@ -37,10 +42,9 @@ func TestPhotoPost(t *testing.T) {
 	//  init mocked datastore
 	datastore.InitMokedDatastore([]byte{}, nil)
 
-	// mocked DB
-	mock := db.InitMockedDB("sqlmock_db_0")
-	defer db.DB.Close()
-	mock.ExpectExec("^INSERT INTO \"photos\"(.*)").WillReturnResult(sqlmock.NewResult(1, 1))
+	db.Mock.ExpectPrepare("^INSERT INTO photos (.*)").
+		ExpectExec().
+		WillReturnResult(sqlmock.NewResult(1, 1))
 
 	data := `{"Name":"ma super photo", "Description":" ma description"}`
 
@@ -116,10 +120,6 @@ func TestPhotoPostNotAPhoto(t *testing.T) {
 }
 
 func TestPhotoGetPropertiesByHash(t *testing.T) {
-	// mocked DB
-	mock := db.InitMockedDB("sqlmock_db_1")
-	defer db.DB.Close()
-
 	e := echo.New()
 	req := httptest.NewRequest(echo.GET, "/", nil)
 	rec := httptest.NewRecorder()
@@ -128,24 +128,20 @@ func TestPhotoGetPropertiesByHash(t *testing.T) {
 
 	// test "valid" hash
 	rows := sqlmock.NewRows([]string{"id", "name"}).AddRow(1, "mocked")
-	mock.ExpectQuery("^SELECT(.*)").WillReturnRows(rows)
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnRows(rows)
 	if assert.NoError(t, PhotoGetProperties(c)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 	}
 }
 
 func TestPhotoGetPropertiesByHashNotFound(t *testing.T) {
-	// mocked DB
-	mock := db.InitMockedDB("sqlmock_db_2")
-	defer db.DB.Close()
-
 	e := echo.New()
 	req := httptest.NewRequest(echo.GET, "/", nil)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 	c.Set("id", "mocked")
 
-	mock.ExpectQuery("^SELECT(.*)").WillReturnError(gorm.ErrRecordNotFound)
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(sql.ErrNoRows)
 	if assert.NoError(t, PhotoGetProperties(c)) {
 		assert.Equal(t, http.StatusNotFound, rec.Code)
 	}
@@ -189,9 +185,9 @@ func TestPhotoResize(t *testing.T) {
 }
 
 func TestPhotoDel(t *testing.T) {
-	mock := db.InitMockedDB("sqlmock_db_3")
-	mock.ExpectExec("DELETE FROM \"photos\"(.*)").WillReturnResult(sqlmock.NewResult(1, 1))
-	defer db.DB.Close()
+	db.Mock.ExpectPrepare("^DELETE FROM photos (.*)").
+		ExpectExec().
+		WillReturnResult(sqlmock.NewResult(1, 1))
 	datastore.InitMokedDatastore(nil, nil)
 	e := echo.New()
 	req := httptest.NewRequest(echo.DELETE, "/", nil)
@@ -204,10 +200,6 @@ func TestPhotoDel(t *testing.T) {
 }
 
 func TestPhotoSearchNoArgs(t *testing.T) {
-	// mocked DB
-	mock := db.InitMockedDB("sqlmock_db_4")
-	defer db.DB.Close()
-
 	e := echo.New()
 	req := httptest.NewRequest(echo.GET, "/", nil)
 	rec := httptest.NewRecorder()
@@ -216,16 +208,13 @@ func TestPhotoSearchNoArgs(t *testing.T) {
 
 	// test "valid" hash
 	rows := sqlmock.NewRows([]string{"id", "hash"}).AddRow(1, "mocked")
-	mock.ExpectQuery("^SELECT(.*)").WillReturnRows(rows)
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnRows(rows)
 	if assert.NoError(t, PhotoSearch(c)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 	}
 }
 
 func TestPhotoPut(t *testing.T) {
-	// mocked DB
-	mock := db.InitMockedDB("sqlmock_db_5")
-	defer db.DB.Close()
 	e := echo.New()
 	rec := httptest.NewRecorder()
 
@@ -238,7 +227,7 @@ func TestPhotoPut(t *testing.T) {
 
 	// no found (bad hash)
 	photoJson := []byte(`{"hash": "bar"}`)
-	mock.ExpectQuery("^SELECT(.*)").WillReturnError(gorm.ErrRecordNotFound)
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(sql.ErrNoRows)
 	rec = httptest.NewRecorder()
 	req = httptest.NewRequest("PUT", "/", bytes.NewBuffer(photoJson))
 	c = e.NewContext(req, rec)
@@ -280,8 +269,10 @@ func TestPhotoPut(t *testing.T) {
 	`)
 
 	rows := sqlmock.NewRows([]string{"id", "name"}).AddRow(1, "mocked")
-	mock.ExpectQuery("^SELECT(.*)").WillReturnRows(rows)
-	mock.ExpectExec("^UPDATE \"photos\"(.*)").WillReturnResult(sqlmock.NewResult(1, 1))
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnRows(rows)
+	db.Mock.ExpectPrepare("^UPDATE photos (.*)").
+		ExpectExec().
+		WillReturnResult(sqlmock.NewResult(1, 1))
 	rec = httptest.NewRecorder()
 	req = httptest.NewRequest("PUT", "/", bytes.NewBuffer(photoNew))
 	c = e.NewContext(req, rec)

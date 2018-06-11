@@ -28,10 +28,10 @@ type User struct {
 	Country   string `json:"country"`
 	About     string `json:"about"`
 	Locale    string `json:"locale"` // char(2)
-	ShowNsfw  bool   `db:"show_nsfw" json:"show_nsfw"`
-	UserURL   string `db:"user_url" json:"user_url"`
+	ShowNsfw  bool   `db:"show_nsfw",json:"show_nsfw"`
+	UserURL   string `db:"user_url",json:"user_url"`
 	Admin     bool   `json:"admin"`
-	AvatarURL string `db:"avatar_url" json:"avatar_url"`
+	AvatarURL string `db:"avatar_url",json:"avatar_url"`
 	APIKey    string `json:"-"`
 }
 

@@ -14,6 +14,10 @@ import (
 	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 )
 
+func init() {
+	db.InitMockedDatabase()
+}
+
 func TestAuthRequired(t *testing.T) {
 	e := echo.New()
 	req := httptest.NewRequest(echo.GET, "/", nil)
@@ -36,15 +40,13 @@ func TestAuthRequired(t *testing.T) {
 	assert.Equal(t, http.StatusForbidden, handler(ctx).(*echo.HTTPError).Code)*/
 
 	// test cookie auth
-	mock := db.InitMockedDB("sqlmock_TestAuthRequired_1")
-	defer db.DB.Close()
 	rows := sqlmock.NewRows([]string{"id", "username", "password"}).AddRow(1, "toorop", "bla")
-	mock.ExpectQuery("^SELECT(.*)").WillReturnRows(rows)
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnRows(rows)
 	ctx.SessionSet("username", "toorop")
 	req.Header.Del("x-api-key")
 	assert.NoError(t, handler(ctx))
 	// no such user
-	mock.ExpectQuery("^SELECT(.*)").WillReturnError(gorm.ErrRecordNotFound)
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(gorm.ErrRecordNotFound)
 	assert.Equal(t, "record not found", handler(ctx).Error())
 
 }

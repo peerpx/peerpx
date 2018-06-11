@@ -57,10 +57,9 @@ func TestUserCreate(t *testing.T) {
 	}
 
 	// OK
-	// mocked DB
-	mock := db.InitMockedDB("sqlmock_db_ctrlusercreate")
-	defer db.DB.Close()
-	mock.ExpectExec("^INSERT INTO \"users\"(.*)").WillReturnResult(sqlmock.NewResult(1, 1))
+	db.Mock.ExpectPrepare("^INSERT INTO users (.*)").
+		ExpectExec().
+		WillReturnResult(sqlmock.NewResult(1, 1))
 	data = `{"Email": "bar@foo.com", "Username": "john", "Password": "dhfsdjhfjk"}`
 
 	req = httptest.NewRequest(echo.POST, "/api/v1/user", strings.NewReader(data))
@@ -94,13 +93,12 @@ func TestUserLogin(t *testing.T) {
 	}
 
 	// no such user
-	mock := db.InitMockedDB("sqlmock_db_ctrluserlogin")
-	defer db.DB.Close()
+
 	body := `{"login":"john", "password":"secret"}`
 	req = httptest.NewRequest(echo.POST, "/api/v1/user/login", strings.NewReader(body))
 	rec = httptest.NewRecorder()
 	c = &middlewares.AppContext{e.NewContext(req, rec), sessions.NewCookieStore([]byte("xN4vP672vbvtb7cp7HuTH4XzD8HZbLV4"), []byte("xN4vP672vbvtb7cp7HuTH4XzD8HZbLV4"))}
-	mock.ExpectQuery("^SELECT(.*)").WillReturnError(gorm.ErrRecordNotFound)
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(gorm.ErrRecordNotFound)
 	if assert.NoError(t, UserLogin(c)) {
 		response := new(userLoginResponse)
 		assert.Equal(t, http.StatusUnauthorized, rec.Code)
@@ -110,13 +108,11 @@ func TestUserLogin(t *testing.T) {
 		}
 	}
 
-	// internal server errror
-	mock = db.InitMockedDB("sqlmock_db_ctrluserlogin_2")
-	defer db.DB.Close()
+	// internal server error
 	req = httptest.NewRequest(echo.POST, "/api/v1/user/login", strings.NewReader(body))
 	rec = httptest.NewRecorder()
 	c = &middlewares.AppContext{e.NewContext(req, rec), sessions.NewCookieStore([]byte("xN4vP672vbvtb7cp7HuTH4XzD8HZbLV4"), []byte("xN4vP672vbvtb7cp7HuTH4XzD8HZbLV4"))}
-	mock.ExpectQuery("^SELECT(.*)").WillReturnError(errors.New("mocked"))
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(errors.New("mocked"))
 	if assert.NoError(t, UserLogin(c)) {
 		response := new(userLoginResponse)
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
@@ -127,13 +123,11 @@ func TestUserLogin(t *testing.T) {
 	}
 
 	// created
-	mock = db.InitMockedDB("sqlmock_db_ctrluserlogin_3")
-	defer db.DB.Close()
 	req = httptest.NewRequest(echo.POST, "/api/v1/user/login", strings.NewReader(body))
 	rec = httptest.NewRecorder()
 	c = &middlewares.AppContext{e.NewContext(req, rec), sessions.NewCookieStore([]byte("xN4vP672vbvtb7cp7HuTH4XzD8HZbLV4"), []byte("xN4vP672vbvtb7cp7HuTH4XzD8HZbLV4"))}
 	row := sqlmock.NewRows([]string{"id", "username", "email", "password"}).AddRow(1, "john", "john@doe.com", "$2y$10$vjxV/XuyPaPuINLopc49COmFfxEiVFac4m0L7GgqvJ.KAQcfpmvCa")
-	mock.ExpectQuery("^SELECT(.*)").WillReturnRows(row)
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnRows(row)
 	if assert.NoError(t, UserLogin(c)) {
 		response := new(userLoginResponse)
 		assert.Equal(t, http.StatusOK, rec.Code)

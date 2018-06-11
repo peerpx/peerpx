@@ -190,10 +190,11 @@ func PhotoGetProperties(c echo.Context) error {
 	// get photo
 	phot, err := photo.GetByHash(hash)
 	if err != nil {
+		log.Infof("DEBUG err %v", err)
 		if err == sql.ErrNoRows {
 			return c.NoContent(http.StatusNotFound)
 		}
-		log.Errorf("%v - controllers.PhotoGetProperties - unable to models.PhotoGetByHash(%s): %v", c.RealIP(), hash, err)
+		log.Errorf("%v - controllers.PhotoGetProperties - unable to photo.GetByHash(%s): %v", c.RealIP(), hash, err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 	return c.JSON(http.StatusOK, phot)

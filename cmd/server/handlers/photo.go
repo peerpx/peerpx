@@ -12,7 +12,8 @@ import (
 
 	"strings"
 
-	"github.com/jinzhu/gorm"
+	"database/sql"
+
 	"github.com/labstack/echo"
 	"github.com/peerpx/peerpx/entities/photo"
 	"github.com/peerpx/peerpx/pkg/hasher"
@@ -189,7 +190,7 @@ func PhotoGetProperties(c echo.Context) error {
 	// get photo
 	phot, err := photo.GetByHash(hash)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound {
+		if err == sql.ErrNoRows {
 			return c.NoContent(http.StatusNotFound)
 		}
 		log.Errorf("%v - controllers.PhotoGetProperties - unable to models.PhotoGetByHash(%s): %v", c.RealIP(), hash, err)
@@ -255,7 +256,7 @@ func PhotoPut(c echo.Context) error {
 	// get photo props ->  photoOri
 	photoOri, err := photo.GetByHash(photoNew.Hash)
 	switch err {
-	case gorm.ErrRecordNotFound:
+	case sql.ErrNoRows:
 		return c.NoContent(http.StatusNotFound)
 	case nil:
 	default:

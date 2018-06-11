@@ -30,23 +30,23 @@ type Photo struct {
 	Description  string    `json:"description"`
 	Camera       string    `json:"camera"`
 	Lens         string    `json:"lens"`
-	FocalLength  uint16    `json:"focal_length"`
+	FocalLength  uint16    `db:"focal_length",json:"focal_length"`
 	Iso          uint16    `json:"iso"`
-	ShutterSpeed string    `json:"shutter_speed"` // or float ? "1/250" vs 0.004
-	Aperture     float32   `json:"aperture"`      // 5.6, 32, 1.4
-	TimeViewed   uint64    `json:"time_viewed"`
+	ShutterSpeed string    `db:"shutter_speed",json:"shutter_speed"` // or float ? "1/250" vs 0.004
+	Aperture     float32   `json:"aperture"`                         // 5.6, 32, 1.4
+	TimeViewed   uint64    `db:"time_viewed",json:"time_viewed"`
 	Rating       float32   `json:"rating"`
 	Category     Category  `json:"category"`
 	Location     string    `json:"location"`
 	Privacy      bool      `json:"privacy"` // true if private
 	Latitude     float32   `json:"latitude"`
 	Longitude    float32   `json:"longitude"`
-	AddedAt      time.Time `json:"added_at"`
-	TakenAt      time.Time `json:"taken_at"`
+	AddedAt      time.Time `db:"added_at",json:"added_at"`
+	TakenAt      time.Time `db:"taken_at",json:"taken_at"`
 	Width        uint32    `json:"width"`
 	Height       uint32    `json:"height"`
 	Nsfw         bool      `json:"nsfw"`
-	LicenceType  Licence   `json:"licence_type"`
+	LicenceType  Licence   `db:"licence_type",json:"licence_type"`
 	URL          string    `json:"url"`
 	User         user.User `json:"user"`
 	// Todo remove
@@ -57,7 +57,7 @@ type Photo struct {
 // GetByHash return photo from its hash
 func GetByHash(hash string) (photo *Photo, err error) {
 	photo = new(Photo)
-	err = db.Get(photo, "SELECT * FROM photo WHERE hash = ?", hash)
+	err = db.Get(photo, "SELECT * FROM photos WHERE hash = ?", hash)
 	// todo load user
 	// todo load tags ?
 	return
@@ -66,7 +66,7 @@ func GetByHash(hash string) (photo *Photo, err error) {
 // DeleteByHash delete photo from DB and datastore
 // we don't care if photo is not found
 func DeleteByHash(hash string) error {
-	stmt, err := db.Preparex("DELETE FROM photo WHERE hash = ?")
+	stmt, err := db.Preparex("DELETE FROM photos WHERE hash = ?")
 	if err != nil {
 		return err
 	}
@@ -83,7 +83,7 @@ func DeleteByHash(hash string) error {
 
 // List list photos regarding optional args
 func List(args ...interface{}) (photos []Photo, err error) {
-	err = db.Select(photos, "SELECT * FROM photo ORDER BY id DESC")
+	err = db.Select(photos, "SELECT * FROM photos ORDER BY id DESC")
 	return
 }
 

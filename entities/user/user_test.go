@@ -5,6 +5,8 @@ import (
 
 	"strings"
 
+	"errors"
+
 	"github.com/jinzhu/gorm"
 	"github.com/peerpx/peerpx/services/config"
 	"github.com/peerpx/peerpx/services/db"
@@ -42,6 +44,13 @@ func TestCreate(t *testing.T) {
 	_, err = Create("foo@bar.com", "jojo", "bla")
 	assert.EqualError(t, err, "password must be at least 6 char long")
 
+	//
+	db.Mock.ExpectPrepare("^INSERT INTO users (.*)").
+		ExpectExec().WillReturnError(errors.New("mocked error"))
+	_, err = Create("foo@bar.com", "jojo", "azerty")
+	assert.EqualError(t, err, "unable to record new user in database: mocked error")
+
+	config.Set("password.minLength", "6")
 	db.Mock.ExpectPrepare("^INSERT INTO users (.*)").
 		ExpectExec().
 		WillReturnResult(sqlmock.NewResult(1, 1))

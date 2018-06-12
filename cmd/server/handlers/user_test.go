@@ -12,8 +12,9 @@ import (
 
 	"errors"
 
+	"database/sql"
+
 	"github.com/gorilla/sessions"
-	"github.com/jinzhu/gorm"
 	"github.com/labstack/echo"
 	"github.com/peerpx/peerpx/cmd/server/middlewares"
 	"github.com/peerpx/peerpx/services/config"
@@ -93,12 +94,11 @@ func TestUserLogin(t *testing.T) {
 	}
 
 	// no such user
-
 	body := `{"login":"john", "password":"secret"}`
 	req = httptest.NewRequest(echo.POST, "/api/v1/user/login", strings.NewReader(body))
 	rec = httptest.NewRecorder()
 	c = &middlewares.AppContext{e.NewContext(req, rec), sessions.NewCookieStore([]byte("xN4vP672vbvtb7cp7HuTH4XzD8HZbLV4"), []byte("xN4vP672vbvtb7cp7HuTH4XzD8HZbLV4"))}
-	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(gorm.ErrRecordNotFound)
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(sql.ErrNoRows)
 	if assert.NoError(t, UserLogin(c)) {
 		response := new(userLoginResponse)
 		assert.Equal(t, http.StatusUnauthorized, rec.Code)

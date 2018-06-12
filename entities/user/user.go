@@ -7,6 +7,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"database/sql"
+
 	"github.com/peerpx/peerpx/services/config"
 	"github.com/peerpx/peerpx/services/db"
 	"golang.org/x/crypto/bcrypt"
@@ -130,7 +132,7 @@ func Login(login, password string) (user *User, err error) {
 	}
 	if err != nil {
 		switch err.Error() {
-		case "record not found":
+		case sql.ErrNoRows.Error():
 			return nil, ErrNoSuchUser
 		default:
 			return nil, err

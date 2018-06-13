@@ -94,8 +94,8 @@ func Create(email, username, clearPassword string) (user *User, err error) {
 	return user, nil
 }
 
-// UserGetByID return user by its ID
-func UserGetByID(id int) (user *User, err error) {
+// GetByID return user by its ID
+func GetByID(id int) (user *User, err error) {
 	user = new(User)
 	err = db.Get(user, "SELECT * FROM users WHERE id=$1", id)
 	return

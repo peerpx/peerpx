@@ -68,16 +68,15 @@ func TestUser_Create(t *testing.T) {
 	}
 }
 
-func TestUserGetByID(t *testing.T) {
+func TestGetByID(t *testing.T) {
 	row := sqlmock.NewRows([]string{"id", "username", "email", "password"}).AddRow(1, "john", "john@doe.com", "$2y$10$vjxV/XuyPaPuINLopc49COmFfxEiVFac4m0L7GgqvJ.KAQcfpmvCa")
 	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnRows(row)
-	user, err := UserGetByID(1)
+	user, err := GetByID(1)
 	if assert.NoError(t, err) {
 		assert.Equal(t, uint(1), user.ID)
 		assert.Equal(t, "john@doe.com", user.Email)
 		assert.Equal(t, "john", user.Username)
 	}
-
 }
 
 func TestLogin(t *testing.T) {

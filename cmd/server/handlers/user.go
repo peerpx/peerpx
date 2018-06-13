@@ -7,6 +7,8 @@ import (
 
 	"encoding/json"
 
+	"fmt"
+
 	"github.com/labstack/echo"
 	"github.com/peerpx/peerpx/cmd/server/middlewares"
 	"github.com/peerpx/peerpx/entities/user"
@@ -19,35 +21,49 @@ type userCreateRequest struct {
 	Password string
 }
 
-type userCreateResponse struct {
-	User *user.User `json:",omitempty"`
-	Msg  string     `json:",omitempty"`
-}
-
 // UserCreate create a new user
 func UserCreate(c echo.Context) error {
-	response := new(userCreateResponse)
+	response := new(ApiResponse)
+	response.Data = nil
 	// get body
 	body, err := ioutil.ReadAll(c.Request().Body)
 	if err != nil {
-		log.Errorf("%v - handlers.UserAdd - unable to read request body: %v", c.RealIP(), err)
-		response.Msg = "bad request body"
-		return c.JSON(http.StatusBadRequest, response)
-	}
-	// unmarshal
-	requestData := new(userCreateRequest)
-	if err = json.Unmarshal(body, requestData); err != nil {
-		log.Errorf("%v - handlers.UserAdd - unable to unmarshall request body: %v", c.RealIP(), err)
-		response.Msg = "bad json"
+		response.DevMessage = fmt.Sprintf("%v - handlers.UserCreate - failed to read request body: %v", c.RealIP(), err)
+		log.Error(response.DevMessage)
+		response.UserMessage = "bad request"
+		response.HttpStatus = http.StatusBadRequest
+		response.Code = "requestBodyNotReadable"
 		return c.JSON(http.StatusBadRequest, response)
 	}
 
-	response.User, err = user.Create(requestData.Email, requestData.Username, requestData.Password)
+	// unmarshal
+	requestData := new(userCreateRequest)
+	if err = json.Unmarshal(body, requestData); err != nil {
+		response.DevMessage = fmt.Sprintf("%v - handlers.UserAdd - unmarshall request body failed: %v", c.RealIP(), err)
+		log.Error(response.DevMessage)
+		response.HttpStatus = http.StatusBadRequest
+		response.Code = "requestBodyNotValidJson"
+		return c.JSON(http.StatusBadRequest, response)
+	}
+
+	user, err := user.Create(requestData.Email, requestData.Username, requestData.Password)
 	if err != nil {
-		log.Errorf("%v - handlers.UserAdd - unable to create user: %v", c.RealIP(), err)
-		response.Msg = err.Error()
+		response.DevMessage = fmt.Sprintf("%v - handlers.UserAdd - user.Create() failed: %v", c.RealIP(), err)
+		log.Error(response.DevMessage)
+		response.HttpStatus = http.StatusInternalServerError
+		response.Code = "userCreateFailed"
 		return c.JSON(http.StatusInternalServerError, response)
 	}
+	response.Data, err = json.Marshal(user)
+	if err != nil {
+		response.DevMessage = fmt.Sprintf("%v - handlers.UserAdd - json.Marshal(user) failed: %v", c.RealIP(), err)
+		log.Error(response.DevMessage)
+		response.HttpStatus = http.StatusInternalServerError
+		response.Code = "userMarshalFailed"
+		return c.JSON(http.StatusInternalServerError, response)
+	}
+
+	response.Success = true
 	return c.JSON(http.StatusCreated, response)
 }
 

@@ -17,6 +17,7 @@ import (
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo"
 	"github.com/peerpx/peerpx/cmd/server/middlewares"
+	"github.com/peerpx/peerpx/entities/user"
 	"github.com/peerpx/peerpx/services/config"
 	"github.com/peerpx/peerpx/services/db"
 	"github.com/stretchr/testify/assert"
@@ -24,36 +25,51 @@ import (
 )
 
 func TestUserCreate(t *testing.T) {
-
+	e := echo.New()
 	config.Set("usernameMaxLength", "5")
 	config.Set("usernameMinLength", "3")
 
-	// bad body (not json)
-	e := echo.New()
-	req := httptest.NewRequest(echo.POST, "/api/v1/user", nil)
+	// read body failed
+	req := httptest.NewRequest(echo.POST, "/api/v1/user", errReader(0))
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 	if assert.NoError(t, UserCreate(c)) {
-		response := new(userCreateResponse)
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
-		if assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), response)) {
-			assert.Nil(t, response.User)
-			assert.Equal(t, "bad json", response.Msg)
+		response, err := GetApiResponse(rec.Body)
+		if assert.NoError(t, err) {
+			assert.False(t, response.Success)
+			assert.Nil(t, response.Data)
+			assert.Equal(t, "requestBodyNotReadable", response.Code)
 		}
 	}
 
-	// bad input (not an email)
-	data := `{"Email": "barfoo.com", "Username": "john", "Password": "dhfsdjhfjk"}`
+	// bad body (not json)
+	req = httptest.NewRequest(echo.POST, "/api/v1/user", nil)
+	rec = httptest.NewRecorder()
+	c = e.NewContext(req, rec)
+	if assert.NoError(t, UserCreate(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+		response, err := GetApiResponse(rec.Body)
+		if assert.NoError(t, err) {
+			assert.False(t, response.Success)
+			assert.Nil(t, response.Data)
+			assert.Equal(t, "requestBodyNotValidJson", response.Code)
+		}
+	}
 
+	// create failed (bad input not an email)
+	data := `{"Email": "barfoo.com", "Username": "john", "Password": "dhfsdjhfjk"}`
 	req = httptest.NewRequest(echo.POST, "/api/v1/user", strings.NewReader(data))
 	rec = httptest.NewRecorder()
 	c = e.NewContext(req, rec)
 	if assert.NoError(t, UserCreate(c)) {
-		response := new(userCreateResponse)
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
-		if assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), response)) {
-			assert.Nil(t, response.User)
-			assert.Equal(t, "barfoo.com is not a valid email", response.Msg)
+		response, err := GetApiResponse(rec.Body)
+		if assert.NoError(t, err) {
+			assert.False(t, response.Success)
+			assert.Nil(t, response.Data)
+			assert.Equal(t, "userCreateFailed", response.Code)
+			assert.True(t, strings.HasSuffix(response.DevMessage, "barfoo.com is not a valid email"))
 		}
 	}
 
@@ -67,11 +83,15 @@ func TestUserCreate(t *testing.T) {
 	rec = httptest.NewRecorder()
 	c = e.NewContext(req, rec)
 	if assert.NoError(t, UserCreate(c)) {
-		response := new(userCreateResponse)
 		assert.Equal(t, http.StatusCreated, rec.Code)
-		if assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), response)) {
-			assert.NotNil(t, response.User)
-			assert.Equal(t, "", response.Msg)
+		response, err := GetApiResponse(rec.Body)
+		if assert.NoError(t, err) {
+			assert.True(t, response.Success)
+			assert.NotNil(t, response.Data)
+			u := new(user.User)
+			if assert.NoError(t, json.Unmarshal(response.Data, u)) {
+				assert.Equal(t, uint(1), u.ID)
+			}
 		}
 	}
 }

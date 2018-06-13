@@ -106,7 +106,33 @@ func TestPhoto_Create(t *testing.T) {
 	if assert.NoError(t, err) {
 		assert.Equal(t, photo.ID, uint(1))
 	}
+}
 
+func TestPhoto_Update(t *testing.T) {
+	photo := new(Photo)
+	err := photo.Update()
+	assert.EqualError(t, err, "photo is not recoded in DB yet, i can't update it !")
+
+	photo.ID = 1
+	// prepare failed
+	db.Mock.ExpectPrepare("^UPDATE photos (.*)").
+		WillReturnError(errors.New("prepare error"))
+	err = photo.Update()
+	assert.EqualError(t, err, "prepare error")
+
+	// exec failed
+	db.Mock.ExpectPrepare("^UPDATE photos (.*)").
+		ExpectExec().
+		WillReturnError(errors.New("prepare error"))
+	err = photo.Update()
+	assert.EqualError(t, err, "prepare error")
+
+	// OK
+	db.Mock.ExpectPrepare("^UPDATE photos (.*)").
+		ExpectExec().
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	err = photo.Update()
+	assert.NoError(t, err)
 }
 
 func TestPhoto_Validate(t *testing.T) {

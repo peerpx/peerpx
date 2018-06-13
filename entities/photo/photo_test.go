@@ -83,6 +83,32 @@ func TestList(t *testing.T) {
 	}
 }
 
+func TestPhoto_Create(t *testing.T) {
+	photo := new(Photo)
+	// prepare failed
+	db.Mock.ExpectPrepare("^INSERT INTO photos (.*)").
+		WillReturnError(errors.New("prepare error"))
+	err := photo.Create()
+	assert.EqualError(t, err, "prepare error")
+
+	// exec failed
+	db.Mock.ExpectPrepare("^INSERT INTO photos (.*)").
+		ExpectExec().
+		WillReturnError(errors.New("prepare error"))
+	err = photo.Create()
+	assert.EqualError(t, err, "prepare error")
+
+	// OK
+	db.Mock.ExpectPrepare("^INSERT INTO photos (.*)").
+		ExpectExec().
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	err = photo.Create()
+	if assert.NoError(t, err) {
+		assert.Equal(t, photo.ID, uint(1))
+	}
+
+}
+
 func TestPhoto_Validate(t *testing.T) {
 	const longString = "6hRRCtSTRK53GQEItACt7Uryq90dVBZfoqOzNFOAb6F3SvS0kcUzRNpfBo7FONRubzDznAO9PlqN5yHr2HWK3gXNdZKAKw0e4fsEk4aSkc4eTPounHQwLmtQo8pyVGPsnpe8M5mwbRQSoj2rQlmmAhcCj1BtfbibF0UemN4Ya6DSibjyHyM8zKDXccVwmQ4ZbXHDC5XMsKIivoFga8EgHWCcQ0qrjSzBAilVwuUpNHoXumIOYqF1QOvGfCPLYW21"
 	photo := new(Photo)

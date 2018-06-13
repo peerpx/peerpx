@@ -21,6 +21,7 @@ func init() {
 
 func TestUser_Create(t *testing.T) {
 	config.InitBasicConfig(strings.NewReader(""))
+
 	// bad email
 	_, err := Create("foo", "john", "blablabla")
 	if assert.Error(t, err) {

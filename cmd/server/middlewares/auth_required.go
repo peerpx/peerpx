@@ -1,6 +1,8 @@
 package middlewares
 
 import (
+	"database/sql"
+
 	"github.com/labstack/echo"
 	"github.com/peerpx/peerpx/entities/user"
 	"github.com/peerpx/peerpx/services/log"
@@ -20,22 +22,17 @@ func AuthRequired() echo.MiddlewareFunc {
 			if username != nil && username.(string) != "" {
 				u, err := user.GetByUsername(username.(string))
 				if err != nil {
-					if err == user.ErrNoSuchUser {
+					if err == sql.ErrNoRows {
 						log.Errorf("%v - middleware.AuthRequired - cookie is present but user %s is not found", c.RealIP(), username.(string))
-						return echo.ErrUnauthorized
+						return echo.ErrForbidden
 					}
 					log.Errorf("%v - middleware.AuthRequired - user.GetByUsername(%s) failed: %v", c.RealIP(), username.(string), err)
 					return err
 				}
 				c.Set("u", u)
 			} else {
-				// TODO refactor
-				// get header x-api-key
-				//key := c.Request().Header.Get("x-api-key")
-				//if key != "QmU2TQthpXDj8QNK6jyqpWsjgDmr3E9Hn3F6zTahGGvZUC" {
 				log.Infof("%v - auth required", c.RealIP())
 				return echo.ErrForbidden
-				//}
 			}
 			return next(c)
 		}

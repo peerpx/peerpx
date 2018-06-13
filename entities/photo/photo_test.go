@@ -30,7 +30,6 @@ func TestGetByHash(t *testing.T) {
 }
 
 func TestDeleteByHash(t *testing.T) {
-
 	// prepare failed
 	db.Mock.ExpectPrepare("^DELETE FROM photos (.*)").WillReturnError(errors.New("mocked error"))
 	err := DeleteByHash("foo")
@@ -69,6 +68,19 @@ func TestDeleteByHash(t *testing.T) {
 	err = DeleteByHash("foo")
 	assert.NoError(t, err)
 
+}
+
+func TestList(t *testing.T) {
+	row := sqlmock.NewRows([]string{"id", "hash"}).AddRow(1, "mocked").AddRow(2, "mocked2")
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnRows(row)
+	photos, err := List("foo", "bar")
+	if assert.NoError(t, err) {
+		assert.Equal(t, 2, len(photos))
+		assert.Equal(t, uint(1), photos[0].ID)
+		assert.Equal(t, "mocked", photos[0].Hash)
+		assert.Equal(t, uint(2), photos[1].ID)
+		assert.Equal(t, "mocked2", photos[1].Hash)
+	}
 }
 
 func TestPhoto_Validate(t *testing.T) {

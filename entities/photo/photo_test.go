@@ -5,12 +5,70 @@ import (
 
 	"time"
 
+	"errors"
+
+	"database/sql"
+
+	"github.com/peerpx/peerpx/services/datastore"
 	"github.com/peerpx/peerpx/services/db"
 	"github.com/stretchr/testify/assert"
+	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 )
 
 func init() {
 	db.InitMockedDatabase()
+}
+
+func TestGetByHash(t *testing.T) {
+	row := sqlmock.NewRows([]string{"id", "hash"}).AddRow(1, "mocked")
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnRows(row)
+	photo, err := GetByHash("mocked")
+	if assert.NoError(t, err) {
+		assert.Equal(t, uint(1), photo.ID)
+		assert.Equal(t, "mocked", photo.Hash)
+	}
+}
+
+func TestDeleteByHash(t *testing.T) {
+
+	// prepare failed
+	db.Mock.ExpectPrepare("^DELETE FROM photos (.*)").WillReturnError(errors.New("mocked error"))
+	err := DeleteByHash("foo")
+	assert.EqualError(t, err, "mocked error")
+
+	// not found
+	db.Mock.ExpectPrepare("^DELETE FROM photos (.*)").
+		ExpectExec().WillReturnError(sql.ErrNoRows)
+	err = DeleteByHash("foo")
+	assert.EqualError(t, err, sql.ErrNoRows.Error())
+
+	// error on datastore delete
+	if err = datastore.InitMokedDatastore(nil, errors.New("mocked")); err != nil {
+		panic(err)
+	}
+	db.Mock.ExpectPrepare("^DELETE FROM photos (.*)").
+		ExpectExec().WillReturnResult(sqlmock.NewResult(1, 1))
+	err = DeleteByHash("foo")
+	assert.EqualError(t, err, "mocked")
+
+	//not found in data store must returns nil error
+	if err = datastore.InitMokedDatastore(nil, datastore.ErrNotFound); err != nil {
+		panic(err)
+	}
+	db.Mock.ExpectPrepare("^DELETE FROM photos (.*)").
+		ExpectExec().WillReturnResult(sqlmock.NewResult(1, 1))
+	err = DeleteByHash("foo")
+	assert.NoError(t, err)
+
+	// OK
+	if err = datastore.InitMokedDatastore(nil, nil); err != nil {
+		panic(err)
+	}
+	db.Mock.ExpectPrepare("^DELETE FROM photos (.*)").
+		ExpectExec().WillReturnResult(sqlmock.NewResult(1, 1))
+	err = DeleteByHash("foo")
+	assert.NoError(t, err)
+
 }
 
 func TestPhoto_Validate(t *testing.T) {

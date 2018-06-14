@@ -35,7 +35,8 @@ func TestUserCreate(t *testing.T) {
 	c := e.NewContext(req, rec)
 	if assert.NoError(t, UserCreate(c)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
-		response, err := GetApiResponse(rec.Body)
+
+		response, err := ApiResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.False(t, response.Success)
 			assert.Nil(t, response.Data)
@@ -49,7 +50,7 @@ func TestUserCreate(t *testing.T) {
 	c = e.NewContext(req, rec)
 	if assert.NoError(t, UserCreate(c)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
-		response, err := GetApiResponse(rec.Body)
+		response, err := ApiResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.False(t, response.Success)
 			assert.Nil(t, response.Data)
@@ -64,12 +65,12 @@ func TestUserCreate(t *testing.T) {
 	c = e.NewContext(req, rec)
 	if assert.NoError(t, UserCreate(c)) {
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
-		response, err := GetApiResponse(rec.Body)
+		response, err := ApiResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.False(t, response.Success)
 			assert.Nil(t, response.Data)
 			assert.Equal(t, "userCreateFailed", response.Code)
-			assert.True(t, strings.HasSuffix(response.DevMessage, "barfoo.com is not a valid email"))
+			assert.True(t, strings.HasSuffix(response.Message, "barfoo.com is not a valid email"))
 		}
 	}
 
@@ -78,13 +79,12 @@ func TestUserCreate(t *testing.T) {
 		ExpectExec().
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	data = `{"Email": "bar@foo.com", "Username": "john", "Password": "dhfsdjhfjk"}`
-
 	req = httptest.NewRequest(echo.POST, "/api/v1/user", strings.NewReader(data))
 	rec = httptest.NewRecorder()
 	c = e.NewContext(req, rec)
 	if assert.NoError(t, UserCreate(c)) {
 		assert.Equal(t, http.StatusCreated, rec.Code)
-		response, err := GetApiResponse(rec.Body)
+		response, err := ApiResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.True(t, response.Success)
 			assert.NotNil(t, response.Data)

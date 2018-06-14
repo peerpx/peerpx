@@ -1,18 +1,6 @@
 package handlers
 
-import (
-	"bytes"
-	"encoding/json"
-	"errors"
-)
-
-// GetApiResponse unmarshall api response panic
-func GetApiResponse(body *bytes.Buffer) (ApiResponse, error) {
-	var response ApiResponse
-	err := json.Unmarshal(body.Bytes(), &response)
-	return response, err
-
-}
+import "errors"
 
 // test reader error ( body, err := ioutil.ReadAll(c.Request().Body)
 type errReader int

@@ -1,6 +1,8 @@
 package handlers
 
-import "errors"
+import (
+	"errors"
+)
 
 // test reader error ( body, err := ioutil.ReadAll(c.Request().Body)
 type errReader int

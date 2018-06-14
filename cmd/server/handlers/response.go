@@ -1,17 +1,15 @@
 package handlers
 
 import (
-	"encoding/json"
-	"time"
-
-	"net/http"
-
 	"bytes"
+	"encoding/json"
+	"net/http"
+	"time"
 
 	"github.com/satori/go.uuid"
 )
 
-// ApiResponse is the response returned by peeepx API
+// ApiResponse is the response returned by PeerPx API
 type ApiResponse struct {
 	UUID       string          `json:"uuid,omitempty"`
 	Timestamp  time.Time       `json:"timestamp"`
@@ -39,5 +37,4 @@ func ApiResponseFromBody(body *bytes.Buffer) (ApiResponse, error) {
 	var response ApiResponse
 	err := json.Unmarshal(body.Bytes(), &response)
 	return response, err
-
 }

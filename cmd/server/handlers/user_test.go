@@ -1,18 +1,13 @@
 package handlers
 
 import (
-	"net/http/httptest"
-	"testing"
-
-	"encoding/json"
-
-	"net/http"
-
-	"strings"
-
-	"errors"
-
 	"database/sql"
+	"encoding/json"
+	"errors"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
 
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo"
@@ -35,7 +30,6 @@ func TestUserCreate(t *testing.T) {
 	c := e.NewContext(req, rec)
 	if assert.NoError(t, UserCreate(c)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
-
 		response, err := ApiResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.False(t, response.Success)
@@ -74,6 +68,8 @@ func TestUserCreate(t *testing.T) {
 		}
 	}
 
+	// marshall(user) failed
+
 	// OK
 	db.Mock.ExpectPrepare("^INSERT INTO users (.*)").
 		ExpectExec().
@@ -97,19 +93,35 @@ func TestUserCreate(t *testing.T) {
 }
 
 func TestUserLogin(t *testing.T) {
-	// bad data
-	// bad body (not json)
 	e := echo.New()
-	req := httptest.NewRequest(echo.POST, "/api/v1/user/login", nil)
+
+	// bad data
+	req := httptest.NewRequest(echo.POST, "/api/v1/user/login", errReader(0))
 	rec := httptest.NewRecorder()
 	c := &middlewares.AppContext{e.NewContext(req, rec), sessions.NewCookieStore([]byte("cookieAuthKey"), []byte("cookieEncryptionKey"))}
 
 	if assert.NoError(t, UserLogin(c)) {
-		response := new(userLoginResponse)
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
-		if assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), response)) {
-			assert.Nil(t, response.User)
-			assert.Equal(t, "bad json", response.Msg)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.Nil(t, response.Data)
+			assert.False(t, response.Success)
+			assert.Equal(t, "requestBodyNotReadable", response.Code)
+		}
+	}
+
+	// bad body (not json)
+	req = httptest.NewRequest(echo.POST, "/api/v1/user/login", nil)
+	rec = httptest.NewRecorder()
+	c = &middlewares.AppContext{e.NewContext(req, rec), sessions.NewCookieStore([]byte("cookieAuthKey"), []byte("cookieEncryptionKey"))}
+
+	if assert.NoError(t, UserLogin(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.Nil(t, response.Data)
+			assert.False(t, response.Success)
+			assert.Equal(t, "requestBodyNotValidJson", response.Code)
 		}
 	}
 
@@ -119,44 +131,57 @@ func TestUserLogin(t *testing.T) {
 	rec = httptest.NewRecorder()
 	c = &middlewares.AppContext{e.NewContext(req, rec), sessions.NewCookieStore([]byte("xN4vP672vbvtb7cp7HuTH4XzD8HZbLV4"), []byte("xN4vP672vbvtb7cp7HuTH4XzD8HZbLV4"))}
 	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(sql.ErrNoRows)
+
 	if assert.NoError(t, UserLogin(c)) {
-		response := new(userLoginResponse)
-		assert.Equal(t, http.StatusUnauthorized, rec.Code)
-		if assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), response)) {
-			assert.Nil(t, response.User)
-			assert.Equal(t, "no such user", response.Msg)
+		assert.Equal(t, http.StatusNotFound, rec.Code)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.False(t, response.Success)
+			assert.Nil(t, response.Data)
+			assert.Equal(t, "noSuchUser", response.Code)
 		}
 	}
 
-	// internal server error
+	// error
+	body = `{"login":"john", "password":"secret"}`
 	req = httptest.NewRequest(echo.POST, "/api/v1/user/login", strings.NewReader(body))
 	rec = httptest.NewRecorder()
 	c = &middlewares.AppContext{e.NewContext(req, rec), sessions.NewCookieStore([]byte("xN4vP672vbvtb7cp7HuTH4XzD8HZbLV4"), []byte("xN4vP672vbvtb7cp7HuTH4XzD8HZbLV4"))}
 	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(errors.New("mocked"))
+
 	if assert.NoError(t, UserLogin(c)) {
-		response := new(userLoginResponse)
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
-		if assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), response)) {
-			assert.Nil(t, response.User)
-			assert.Equal(t, "unable to login", response.Msg)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.False(t, response.Success)
+			assert.Nil(t, response.Data)
+			assert.Equal(t, "userLoginFailed", response.Code)
 		}
 	}
 
-	// created
+	// ok
+	body = `{"login":"john", "password":"secret"}`
 	req = httptest.NewRequest(echo.POST, "/api/v1/user/login", strings.NewReader(body))
 	rec = httptest.NewRecorder()
 	c = &middlewares.AppContext{e.NewContext(req, rec), sessions.NewCookieStore([]byte("xN4vP672vbvtb7cp7HuTH4XzD8HZbLV4"), []byte("xN4vP672vbvtb7cp7HuTH4XzD8HZbLV4"))}
 	row := sqlmock.NewRows([]string{"id", "username", "email", "password"}).AddRow(1, "john", "john@doe.com", "$2y$10$vjxV/XuyPaPuINLopc49COmFfxEiVFac4m0L7GgqvJ.KAQcfpmvCa")
 	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnRows(row)
+
 	if assert.NoError(t, UserLogin(c)) {
-		response := new(userLoginResponse)
 		assert.Equal(t, http.StatusOK, rec.Code)
-		if assert.NoError(t, json.Unmarshal(rec.Body.Bytes(), response)) {
-			assert.NotNil(t, response.User)
-			assert.Equal(t, "john", response.User.Username)
-			assert.Equal(t, "john@doe.com", response.User.Email)
-			assert.Equal(t, "", response.Msg)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.True(t, response.Success)
+			if assert.NotNil(t, response.Data) {
+				u := new(user.User)
+				if assert.NoError(t, json.Unmarshal(response.Data, u)) {
+					assert.Equal(t, uint(1), u.ID)
+					assert.Equal(t, "john", u.Username)
+					assert.Equal(t, "john@doe.com", u.Email)
+					username, _ := c.SessionGet("username")
+					assert.Equal(t, "john", username)
+				}
+			}
 		}
 	}
-
 }

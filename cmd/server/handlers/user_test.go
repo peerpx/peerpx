@@ -9,7 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/gorilla/sessions"
 	"github.com/labstack/echo"
 	"github.com/peerpx/peerpx/cmd/server/middlewares"
 	"github.com/peerpx/peerpx/entities/user"
@@ -27,7 +26,7 @@ func TestUserCreate(t *testing.T) {
 	// read body failed
 	req := httptest.NewRequest(echo.POST, "/api/v1/user", errReader(0))
 	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
+	c := middlewares.NewMockedContext(e.NewContext(req, rec))
 	if assert.NoError(t, UserCreate(c)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
 		response, err := ApiResponseFromBody(rec.Body)
@@ -41,7 +40,7 @@ func TestUserCreate(t *testing.T) {
 	// bad body (not json)
 	req = httptest.NewRequest(echo.POST, "/api/v1/user", nil)
 	rec = httptest.NewRecorder()
-	c = e.NewContext(req, rec)
+	c = middlewares.NewMockedContext(e.NewContext(req, rec))
 	if assert.NoError(t, UserCreate(c)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
 		response, err := ApiResponseFromBody(rec.Body)
@@ -56,7 +55,7 @@ func TestUserCreate(t *testing.T) {
 	data := `{"Email": "barfoo.com", "Username": "john", "Password": "dhfsdjhfjk"}`
 	req = httptest.NewRequest(echo.POST, "/api/v1/user", strings.NewReader(data))
 	rec = httptest.NewRecorder()
-	c = e.NewContext(req, rec)
+	c = middlewares.NewMockedContext(e.NewContext(req, rec))
 	if assert.NoError(t, UserCreate(c)) {
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
 		response, err := ApiResponseFromBody(rec.Body)
@@ -77,7 +76,7 @@ func TestUserCreate(t *testing.T) {
 	data = `{"Email": "bar@foo.com", "Username": "john", "Password": "dhfsdjhfjk"}`
 	req = httptest.NewRequest(echo.POST, "/api/v1/user", strings.NewReader(data))
 	rec = httptest.NewRecorder()
-	c = e.NewContext(req, rec)
+	c = middlewares.NewMockedContext(e.NewContext(req, rec))
 	if assert.NoError(t, UserCreate(c)) {
 		assert.Equal(t, http.StatusCreated, rec.Code)
 		response, err := ApiResponseFromBody(rec.Body)
@@ -94,11 +93,10 @@ func TestUserCreate(t *testing.T) {
 
 func TestUserLogin(t *testing.T) {
 	e := echo.New()
-
 	// bad data
 	req := httptest.NewRequest(echo.POST, "/api/v1/user/login", errReader(0))
 	rec := httptest.NewRecorder()
-	c := &middlewares.AppContext{e.NewContext(req, rec), sessions.NewCookieStore([]byte("cookieAuthKey"), []byte("cookieEncryptionKey"))}
+	c := middlewares.NewMockedContext(e.NewContext(req, rec))
 
 	if assert.NoError(t, UserLogin(c)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
@@ -113,8 +111,7 @@ func TestUserLogin(t *testing.T) {
 	// bad body (not json)
 	req = httptest.NewRequest(echo.POST, "/api/v1/user/login", nil)
 	rec = httptest.NewRecorder()
-	c = &middlewares.AppContext{e.NewContext(req, rec), sessions.NewCookieStore([]byte("cookieAuthKey"), []byte("cookieEncryptionKey"))}
-
+	c = middlewares.NewMockedContext(e.NewContext(req, rec))
 	if assert.NoError(t, UserLogin(c)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
 		response, err := ApiResponseFromBody(rec.Body)
@@ -129,7 +126,7 @@ func TestUserLogin(t *testing.T) {
 	body := `{"login":"john", "password":"secret"}`
 	req = httptest.NewRequest(echo.POST, "/api/v1/user/login", strings.NewReader(body))
 	rec = httptest.NewRecorder()
-	c = &middlewares.AppContext{e.NewContext(req, rec), sessions.NewCookieStore([]byte("xN4vP672vbvtb7cp7HuTH4XzD8HZbLV4"), []byte("xN4vP672vbvtb7cp7HuTH4XzD8HZbLV4"))}
+	c = middlewares.NewMockedContext(e.NewContext(req, rec))
 	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(sql.ErrNoRows)
 
 	if assert.NoError(t, UserLogin(c)) {
@@ -146,7 +143,7 @@ func TestUserLogin(t *testing.T) {
 	body = `{"login":"john", "password":"secret"}`
 	req = httptest.NewRequest(echo.POST, "/api/v1/user/login", strings.NewReader(body))
 	rec = httptest.NewRecorder()
-	c = &middlewares.AppContext{e.NewContext(req, rec), sessions.NewCookieStore([]byte("xN4vP672vbvtb7cp7HuTH4XzD8HZbLV4"), []byte("xN4vP672vbvtb7cp7HuTH4XzD8HZbLV4"))}
+	c = middlewares.NewMockedContext(e.NewContext(req, rec))
 	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(errors.New("mocked"))
 
 	if assert.NoError(t, UserLogin(c)) {
@@ -163,7 +160,7 @@ func TestUserLogin(t *testing.T) {
 	body = `{"login":"john", "password":"secret"}`
 	req = httptest.NewRequest(echo.POST, "/api/v1/user/login", strings.NewReader(body))
 	rec = httptest.NewRecorder()
-	c = &middlewares.AppContext{e.NewContext(req, rec), sessions.NewCookieStore([]byte("xN4vP672vbvtb7cp7HuTH4XzD8HZbLV4"), []byte("xN4vP672vbvtb7cp7HuTH4XzD8HZbLV4"))}
+	c = middlewares.NewMockedContext(e.NewContext(req, rec))
 	row := sqlmock.NewRows([]string{"id", "username", "email", "password"}).AddRow(1, "john", "john@doe.com", "$2y$10$vjxV/XuyPaPuINLopc49COmFfxEiVFac4m0L7GgqvJ.KAQcfpmvCa")
 	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnRows(row)
 

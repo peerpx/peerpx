@@ -10,7 +10,6 @@ import (
 
 	"errors"
 
-	"github.com/gorilla/sessions"
 	"github.com/labstack/echo"
 	"github.com/peerpx/peerpx/entities/user"
 	"github.com/peerpx/peerpx/services/db"
@@ -27,14 +26,14 @@ func TestAuthRequired(t *testing.T) {
 	e := echo.New()
 	req := httptest.NewRequest(echo.GET, "/", nil)
 	rec := httptest.NewRecorder()
-	ctx := &AppContext{e.NewContext(req, rec), nil}
+	ctx := &AppContext{e.NewContext(req, rec), nil, "mocked"}
 	handler := AuthRequired()(func(c echo.Context) error {
 		return c.String(http.StatusOK, "test")
 	})
 	assert.Panics(t, func() { handler(ctx) })
 
 	// no username in session -> forbidden
-	ctx = &AppContext{e.NewContext(req, rec), sessions.NewCookieStore([]byte("cookieAuthKey"), []byte("cookieEncryptionKey"))}
+	ctx = NewMockedContext(e.NewContext(req, rec))
 	err := handler(ctx)
 	assert.Error(t, err, echo.ErrForbidden)
 

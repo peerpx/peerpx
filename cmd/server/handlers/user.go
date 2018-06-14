@@ -22,8 +22,10 @@ type userCreateRequest struct {
 }
 
 // UserCreate create a new user
-func UserCreate(c echo.Context) error {
-	response := NewApiResponse()
+func UserCreate(ac echo.Context) error {
+	c := ac.(*middlewares.AppContext)
+	response := NewApiResponse(c.UUID)
+
 	// get body
 	body, err := ioutil.ReadAll(c.Request().Body)
 	if err != nil {
@@ -63,6 +65,7 @@ func UserCreate(c echo.Context) error {
 
 	response.Success = true
 	response.HttpStatus = http.StatusCreated
+	c.LogInfof("new user created: %s %s", user.Username, user.Email)
 	return c.JSON(response.HttpStatus, response)
 }
 
@@ -73,8 +76,8 @@ type userLoginRequest struct {
 
 // UserLogin used to login
 func UserLogin(ac echo.Context) error {
-	response := NewApiResponse()
 	c := ac.(*middlewares.AppContext)
+	response := NewApiResponse(c.UUID)
 
 	body, err := ioutil.ReadAll(c.Request().Body)
 	if err != nil {
@@ -127,6 +130,7 @@ func UserLogin(ac echo.Context) error {
 		response.Code = "userMarshalFailed"
 		return c.JSON(response.HttpStatus, response)
 	}
+	c.LogInfof("successful login: %s %s", u.Username, u.Email)
 	response.Success = true
 	response.HttpStatus = http.StatusOK
 	return c.JSON(response.HttpStatus, response)

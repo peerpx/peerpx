@@ -5,8 +5,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"time"
-
-	"github.com/satori/go.uuid"
 )
 
 // ApiResponse is the response returned by PeerPx API
@@ -22,10 +20,10 @@ type ApiResponse struct {
 
 // NewApiResponse return an instantiated API response
 // panic if uuid.NewV4() failed (should never happen)
-func NewApiResponse() *ApiResponse {
+func NewApiResponse(uuid string) *ApiResponse {
 	return &ApiResponse{
 		Timestamp:  time.Now(),
-		UUID:       uuid.Must(uuid.NewV4()).String(),
+		UUID:       uuid,
 		HttpStatus: http.StatusOK,
 		Data:       nil,
 	}

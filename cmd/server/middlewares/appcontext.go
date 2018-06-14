@@ -1,9 +1,13 @@
 package middlewares
 
 import (
+	"fmt"
+
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo"
 	"github.com/peerpx/peerpx/services/config"
+	"github.com/peerpx/peerpx/services/log"
+	"github.com/satori/go.uuid"
 )
 
 // AppContext extends echo.Context
@@ -11,21 +15,30 @@ import (
 type AppContext struct {
 	echo.Context
 	CookieStore *sessions.CookieStore
+	UUID        string
+}
+
+func NewMockedContext(c echo.Context) *AppContext {
+	return &AppContext{
+		c,
+		sessions.NewCookieStore([]byte("xN4vP672vbvtb7cp7HuTH4XzD8HZbLV4"), []byte("xN4vP672vbvtb7cp7HuTH4XzD8HZbLV4")),
+		uuid.Must(uuid.NewV4()).String(),
+	}
 }
 
 // SetCookieStore CookieStore setter
-func (a *AppContext) SetCookieStore(cs *sessions.CookieStore) {
-	a.CookieStore = cs
+func (c *AppContext) SetCookieStore(cs *sessions.CookieStore) {
+	c.CookieStore = cs
 }
 
 // GetCookieStore CookieStore getter
-func (a *AppContext) GetCookieStore() *sessions.CookieStore {
-	return a.CookieStore
+func (c *AppContext) GetCookieStore() *sessions.CookieStore {
+	return c.CookieStore
 }
 
 // SessionGet get data from session
-func (a *AppContext) SessionGet(key string) (interface{}, error) {
-	session, err := a.CookieStore.Get(a.Request(), "ppx")
+func (c *AppContext) SessionGet(key string) (interface{}, error) {
+	session, err := c.CookieStore.Get(c.Request(), "ppx")
 	if err != nil {
 		return nil, err
 	}
@@ -33,19 +46,42 @@ func (a *AppContext) SessionGet(key string) (interface{}, error) {
 }
 
 // SessionSet set data in session
-func (a *AppContext) SessionSet(key string, value interface{}) error {
-	session, err := a.CookieStore.Get(a.Request(), "ppx")
+func (c *AppContext) SessionSet(key string, value interface{}) error {
+	session, err := c.CookieStore.Get(c.Request(), "ppx")
 	if err != nil {
 		return err
 	}
 	session.Values[key] = value
-	return session.Save(a.Request(), a.Response().Writer)
+	return session.Save(c.Request(), c.Response().Writer)
+}
+
+// Info is the info level logger
+func (c *AppContext) LogInfo(v ...interface{}) {
+	log.Info(fmt.Sprintf("%s - %s - ", c.RealIP(), c.UUID), fmt.Sprintln(v...))
+}
+
+// Infof is the info level logger
+func (c *AppContext) LogInfof(format string, v ...interface{}) {
+	log.Infof(fmt.Sprintf("%s - %s - %s ", c.RealIP(), c.UUID, format), v...)
+}
+
+// Error is the error level logger
+func (c *AppContext) LogError(v ...interface{}) {
+	log.Error(fmt.Sprintf("%s - %s - ", c.RealIP(), c.UUID), fmt.Sprintln(v...))
+}
+
+// Errofis the info level logger
+func (c *AppContext) LogErrorf(format string, v ...interface{}) {
+	log.Errorf(fmt.Sprintf("%s - %s - %s ", c.RealIP(), c.UUID, format), v...)
 }
 
 func Context(h echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		cc := &AppContext{c, nil}
-		cc.SetCookieStore(sessions.NewCookieStore([]byte(config.GetStringP("cookieAuthKey")), []byte(config.GetStringP("cookieEncrytionKey"))))
+		cc := &AppContext{
+			c,
+			sessions.NewCookieStore([]byte(config.GetStringP("cookieAuthKey")), []byte(config.GetStringP("cookieEncrytionKey"))),
+			uuid.Must(uuid.NewV4()).String(),
+		}
 		return h(cc)
 	}
 }

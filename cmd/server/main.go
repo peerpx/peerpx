@@ -82,8 +82,6 @@ func main() {
 
 	// get me
 	e.GET("/api/v1/user/me", handlers.UserMe, middlewares.AuthRequired())
-	// TODO remove
-	e.POST("/user/me", handlers.UserMe, middlewares.AuthRequired())
 
 	// update user
 	e.PUT("/api/v1/user", handlers.Todo)
@@ -104,7 +102,7 @@ func main() {
 	// photo
 
 	// upload
-	e.POST("/api/v1/photo", handlers.PhotoPost, middlewares.AuthRequired())
+	e.POST("/api/v1/photo", handlers.PhotoCreate, middlewares.AuthRequired())
 
 	// get photo
 	// size:

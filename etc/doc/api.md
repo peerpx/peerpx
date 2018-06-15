@@ -17,14 +17,13 @@ TODO
 
 ### POST /api/v1/photo
 
-query params: 
-- name -> model.Photo.Name*
+Request: 
+body: multipart
+    - properties: entities.Photo
+    - file: photo 
+Response:
+response.Data = entities.Photo
 
-body: photo
-
-response:
-- HTTP status
-- model.Photo (JSON) 
     
 ### PUT /api/v1/photo
 

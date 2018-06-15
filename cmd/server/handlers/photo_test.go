@@ -16,6 +16,8 @@ import (
 
 	"errors"
 
+	"database/sql"
+
 	"github.com/labstack/echo"
 	"github.com/peerpx/peerpx/cmd/server/middlewares"
 	"github.com/peerpx/peerpx/entities/photo"
@@ -262,122 +264,57 @@ func TestPhotoCreate(t *testing.T) {
 	}
 }
 
-/*
-func TestPhotoCreate(t *testing.T) {
-	// init config (small values -> photo will be re-encoded)
-	config.InitBasicConfig(strings.NewReader(""))
-	config.Set("photo.maxWidth", "100")
-	config.Set("photo.maxHeight", "100")
-
-	//  init mocked datastore
-	datastore.InitMokedDatastore([]byte{}, nil)
-
-	db.Mock.ExpectPrepare("^INSERT INTO photos (.*)").
-		ExpectExec().
-		WillReturnResult(sqlmock.NewResult(1, 1))
-
-	data := `{"Name":"ma super photo", "Description":" ma description"}`
-
-	body := new(bytes.Buffer)
-	writer := multipart.NewWriter(body)
-
-	handleErr(writer.WriteField("data", data))
-
-	file, err := os.Open("../../../etc/samples/photos/robin.jpg")
-	handleErr(err)
-	defer file.Close()
-
-	part, err := writer.CreateFormFile("file", "robin.jpg")
-	handleErr(err)
-
-	_, err = io.Copy(part, file)
-	handleErr(err)
-	handleErr(writer.Close())
-
+func TestPhotoGetProperties(t *testing.T) {
 	e := echo.New()
-	req := httptest.NewRequest(echo.POST, "/", body)
-	req.Header.Set("Content-Type", writer.FormDataContentType())
+	req := httptest.NewRequest(echo.POST, "/api/v1/photo", nil)
+
+	// db failed
 	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-
-	config.InitBasicConfig(strings.NewReader(""))
-	config.Set("hostname", "peerpx.com")
-	if assert.NoError(t, PhotoPost(c)) {
-		assert.Equal(t, http.StatusCreated, rec.Code)
-		resp, err := ioutil.ReadAll(rec.Body)
-		assert.NoError(t, err)
-		var response PhotoPostResponse
-		err = json.Unmarshal(resp, &response)
-		assert.NoError(t, err)
-		assert.Equal(t, "AE2LNbBQ3vBDJHZpyNt3g9dFs14gcDryx6Lcted6d1yE", response.PhotoProps.Hash)
-	}
-}
-
-
-func TestPhotoPostNotAPhoto(t *testing.T) {
-	data := `{"Name":"ma super photo", "Description":" ma description"}`
-
-	body := new(bytes.Buffer)
-	writer := multipart.NewWriter(body)
-
-
-	handleErr(writer.WriteField("data", data))
-
-	file, err := os.Open("../../../etc/samples/photos/not-a-photo.jpg")
-	handleErr(err)
-	defer file.Close()
-
-	part, err := writer.CreateFormFile("file", "robin.jpg")
-	handleErr(err)
-
-	_, err = io.Copy(part, file)
-	handleErr(err)
-	handleErr(writer.Close())
-
-	e := echo.New()
-	req := httptest.NewRequest(echo.POST, "/", body)
-	req.Header.Set("Content-Type", writer.FormDataContentType())
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-
-	if assert.NoError(t, PhotoPost(c)) {
-		assert.Equal(t, http.StatusBadRequest, rec.Code)
-		resp, err := ioutil.ReadAll(rec.Body)
-		assert.NoError(t, err)
-		var response PhotoPostResponse
-		err = json.Unmarshal(resp, &response)
-		assert.NoError(t, err)
-		assert.Equal(t, uint16(1), response.Code)
-	}
-}
-
-func TestPhotoGetPropertiesByHash(t *testing.T) {
-	e := echo.New()
-	req := httptest.NewRequest(echo.GET, "/", nil)
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-	c.Set("id", "mocked")
-
-	// test "valid" hash
-	rows := sqlmock.NewRows([]string{"id", "name"}).AddRow(1, "mocked")
-	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnRows(rows)
+	c := middlewares.NewMockedContext(e.NewContext(req, rec))
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(errors.New("mocked"))
 	if assert.NoError(t, PhotoGetProperties(c)) {
-		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, http.StatusInternalServerError, rec.Code)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.False(t, response.Success)
+			assert.Equal(t, "getByHashFailed", response.Code)
+		}
 	}
-}
 
-func TestPhotoGetPropertiesByHashNotFound(t *testing.T) {
-	e := echo.New()
-	req := httptest.NewRequest(echo.GET, "/", nil)
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-	c.Set("id", "mocked")
-
+	// not found
+	rec = httptest.NewRecorder()
+	c = middlewares.NewMockedContext(e.NewContext(req, rec))
 	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(sql.ErrNoRows)
 	if assert.NoError(t, PhotoGetProperties(c)) {
 		assert.Equal(t, http.StatusNotFound, rec.Code)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.False(t, response.Success)
+			assert.Equal(t, "notFound", response.Code)
+		}
+	}
+
+	// Ok
+	rec = httptest.NewRecorder()
+	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	row := sqlmock.NewRows([]string{"id", "hash"}).AddRow(1, "mocked")
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnRows(row)
+	if assert.NoError(t, PhotoGetProperties(c)) {
+		assert.Equal(t, http.StatusOK, rec.Code)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.True(t, response.Success)
+			p := new(photo.Photo)
+			err = json.Unmarshal(response.Data, p)
+			if assert.NoError(t, err) {
+				assert.Equal(t, uint(1), p.ID)
+				assert.Equal(t, "mocked", p.Hash)
+			}
+		}
 	}
 }
+
+/*
 
 func TestPhotoGet(t *testing.T) {
 	//  init mocked datastore

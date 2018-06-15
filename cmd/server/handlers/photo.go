@@ -203,20 +203,41 @@ func PhotoCreate(ac echo.Context) error {
 }
 
 // PhotoGetProperties returns PhotoProperties
-func PhotoGetProperties(c echo.Context) error {
+func PhotoGetProperties(ac echo.Context) error {
+	c := ac.(*middlewares.AppContext)
+	response := NewApiResponse(c.UUID)
+
 	// get ID -> hash
 	hash := c.Param("id")
+
 	// get photo
-	phot, err := photo.GetByHash(hash)
+	p, err := photo.GetByHash(hash)
 	if err != nil {
-		log.Infof("DEBUG err %v", err)
 		if err == sql.ErrNoRows {
-			return c.NoContent(http.StatusNotFound)
+			response.Code = "notFound"
+			response.HttpStatus = http.StatusNotFound
+			return c.JSON(response.HttpStatus, response)
 		}
-		log.Errorf("%v - controllers.PhotoGetProperties - unable to photo.GetByHash(%s): %v", c.RealIP(), hash, err)
-		return c.NoContent(http.StatusInternalServerError)
+		response.Message = fmt.Sprintf("%v - %s - handlers.PhotoGetProperties - photo.GetByHash(%s) failed: %v", c.RealIP(), response.UUID, hash, err)
+		log.Error(response.Message)
+		response.Code = "getByHashFailed"
+		response.HttpStatus = http.StatusInternalServerError
+		return c.JSON(response.HttpStatus, response)
 	}
-	return c.JSON(http.StatusOK, phot)
+	// marshal photo
+	response.Data, err = json.Marshal(p)
+	if err != nil {
+		response.Message = fmt.Sprintf("%v - %s - handlers.PhotoGetProperties - json.Marshal(photo) failed: %v", c.RealIP(), response.UUID, err)
+		log.Error(response.Message)
+		response.HttpStatus = http.StatusInternalServerError
+		response.Code = "marshalFailed"
+		return c.JSON(response.HttpStatus, response)
+	}
+
+	// GG
+	response.Success = true
+	response.HttpStatus = http.StatusOK
+	return c.JSON(response.HttpStatus, response)
 }
 
 // PhotoGet return a photo

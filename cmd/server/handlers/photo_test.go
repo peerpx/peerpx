@@ -1,16 +1,264 @@
 package handlers
 
 import (
+	"bytes"
+	"mime/multipart"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	"net/http"
+
+	"io"
+	"os"
+
+	"encoding/json"
+
+	"errors"
+
+	"github.com/labstack/echo"
+	"github.com/peerpx/peerpx/cmd/server/middlewares"
+	"github.com/peerpx/peerpx/entities/photo"
+	"github.com/peerpx/peerpx/services/config"
+	"github.com/peerpx/peerpx/services/datastore"
 	"github.com/peerpx/peerpx/services/db"
+	"github.com/stretchr/testify/assert"
+	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 )
 
 func init() {
 	db.InitMockedDatabase()
 }
 
-func handleErr(err error) {
-	if err != nil {
-		panic(err)
+func TestPhotoCreate(t *testing.T) {
+	e := echo.New()
+	config.InitBasicConfig(strings.NewReader(""))
+	config.Set("photo.maxWidth", "100")
+	config.Set("photo.maxHeight", "100")
+	config.Set("hostname", "localhost")
+	//  init mocked datastore
+
+	// request is not multipart
+	req := httptest.NewRequest(echo.POST, "/api/v1/photo", nil)
+	rec := httptest.NewRecorder()
+	c := middlewares.NewMockedContext(e.NewContext(req, rec))
+	if assert.NoError(t, PhotoCreate(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.False(t, response.Success)
+			assert.Equal(t, "reqNotMultipart", response.Code)
+		}
+	}
+
+	// no properties in multipart
+	foo := `{"foo":"bar"}`
+	body := new(bytes.Buffer)
+	writer := multipart.NewWriter(body)
+	handleErr(writer.WriteField("foo", foo))
+	handleErr(writer.Close())
+
+	req = httptest.NewRequest(echo.POST, "/api/v1/photo", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	rec = httptest.NewRecorder()
+	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	if assert.NoError(t, PhotoCreate(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.False(t, response.Success)
+			assert.Equal(t, "reqBadMultipartProperties", response.Code)
+		}
+	}
+
+	// properties bad format
+	properties := "foobar"
+	body = new(bytes.Buffer)
+	writer = multipart.NewWriter(body)
+	handleErr(writer.WriteField("properties", properties))
+	handleErr(writer.Close())
+
+	req = httptest.NewRequest(echo.POST, "/api/v1/photo", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	rec = httptest.NewRecorder()
+	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	if assert.NoError(t, PhotoCreate(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.False(t, response.Success)
+			assert.Equal(t, "reqBadPhotoProperties", response.Code)
+		}
+	}
+
+	// no file
+	properties = `{"name":"ma super photo", "description":" ma description"}`
+	body = new(bytes.Buffer)
+	writer = multipart.NewWriter(body)
+	handleErr(writer.WriteField("properties", properties))
+	handleErr(writer.Close())
+	req = httptest.NewRequest(echo.POST, "/api/v1/photo", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	rec = httptest.NewRecorder()
+	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	if assert.NoError(t, PhotoCreate(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.False(t, response.Success)
+			assert.Equal(t, "reqBadMultipartFile", response.Code)
+		}
+	}
+
+	// bad mime type
+	body = new(bytes.Buffer)
+	writer = multipart.NewWriter(body)
+	handleErr(writer.WriteField("properties", properties))
+	file, err := os.Open("../../../etc/samples/photos/not-a-photo.jpg")
+	handleErr(err)
+	defer file.Close()
+	part, err := writer.CreateFormFile("file", "robin.jpg")
+	handleErr(err)
+	_, err = io.Copy(part, file)
+	handleErr(err)
+	handleErr(writer.Close())
+	req = httptest.NewRequest(echo.POST, "/api/v1/photo", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	rec = httptest.NewRecorder()
+	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	if assert.NoError(t, PhotoCreate(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.False(t, response.Success)
+			assert.Equal(t, "unsupportedPhotoFormat", response.Code)
+		}
+	}
+
+	// datastore failed
+	body = new(bytes.Buffer)
+	writer = multipart.NewWriter(body)
+	handleErr(writer.WriteField("properties", properties))
+	file, err = os.Open("../../../etc/samples/photos/robin.jpg")
+	handleErr(err)
+	defer file.Close()
+	part, err = writer.CreateFormFile("file", "robin.jpg")
+	handleErr(err)
+	_, err = io.Copy(part, file)
+	handleErr(err)
+	handleErr(writer.Close())
+	req = httptest.NewRequest(echo.POST, "/api/v1/photo", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	rec = httptest.NewRecorder()
+	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	datastore.InitMokedDatastore([]byte{}, errors.New("mocked"))
+	if assert.NoError(t, PhotoCreate(c)) {
+		assert.Equal(t, http.StatusInternalServerError, rec.Code)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.False(t, response.Success)
+			assert.Equal(t, "datastoreFailed", response.Code)
+
+		}
+	}
+
+	// db failed
+	body = new(bytes.Buffer)
+	writer = multipart.NewWriter(body)
+	handleErr(writer.WriteField("properties", properties))
+	file, err = os.Open("../../../etc/samples/photos/robin.jpg")
+	handleErr(err)
+	defer file.Close()
+	part, err = writer.CreateFormFile("file", "robin.jpg")
+	handleErr(err)
+	_, err = io.Copy(part, file)
+	handleErr(err)
+	handleErr(writer.Close())
+	req = httptest.NewRequest(echo.POST, "/api/v1/photo", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	rec = httptest.NewRecorder()
+	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+
+	datastore.InitMokedDatastore([]byte{}, nil)
+	//DB
+	db.Mock.ExpectPrepare("^INSERT INTO photos (.*)").
+		ExpectExec().
+		WillReturnError(errors.New("mocked"))
+	if assert.NoError(t, PhotoCreate(c)) {
+		assert.Equal(t, http.StatusInternalServerError, rec.Code)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.False(t, response.Success)
+			assert.Equal(t, "dbCreateFailed", response.Code)
+		}
+	}
+
+	// duplicate
+	body = new(bytes.Buffer)
+	writer = multipart.NewWriter(body)
+	handleErr(writer.WriteField("properties", properties))
+	file, err = os.Open("../../../etc/samples/photos/robin.jpg")
+	handleErr(err)
+	defer file.Close()
+	part, err = writer.CreateFormFile("file", "robin.jpg")
+	handleErr(err)
+	_, err = io.Copy(part, file)
+	handleErr(err)
+	handleErr(writer.Close())
+	req = httptest.NewRequest(echo.POST, "/api/v1/photo", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	rec = httptest.NewRecorder()
+	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+
+	datastore.InitMokedDatastore([]byte{}, nil)
+	//DB
+	db.Mock.ExpectPrepare("^INSERT INTO photos (.*)").
+		ExpectExec().
+		WillReturnError(errors.New("UNIQUE CONSTRAINT blabla"))
+	if assert.NoError(t, PhotoCreate(c)) {
+		assert.Equal(t, http.StatusConflict, rec.Code)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.False(t, response.Success)
+			assert.Equal(t, "duplicate", response.Code)
+		}
+	}
+
+	// ok
+	body = new(bytes.Buffer)
+	writer = multipart.NewWriter(body)
+	handleErr(writer.WriteField("properties", properties))
+	file, err = os.Open("../../../etc/samples/photos/robin.jpg")
+	handleErr(err)
+	defer file.Close()
+	part, err = writer.CreateFormFile("file", "robin.jpg")
+	handleErr(err)
+	_, err = io.Copy(part, file)
+	handleErr(err)
+	handleErr(writer.Close())
+	req = httptest.NewRequest(echo.POST, "/api/v1/photo", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	rec = httptest.NewRecorder()
+	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+
+	datastore.InitMokedDatastore([]byte{}, nil)
+	//DB
+	db.Mock.ExpectPrepare("^INSERT INTO photos (.*)").
+		ExpectExec().
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	if assert.NoError(t, PhotoCreate(c)) {
+		assert.Equal(t, http.StatusCreated, rec.Code)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.True(t, response.Success)
+			// unmashall photo
+			p := new(photo.Photo)
+			err = json.Unmarshal(response.Data, p)
+			if assert.NoError(t, err) {
+				assert.Equal(t, uint(1), p.ID)
+				assert.Equal(t, "H62MqsYPjtrQ56bgEJyaMVSGNJH3koXkBHgpj4uigR8T", p.Hash)
+			}
+		}
 	}
 }
 
@@ -65,11 +313,13 @@ func TestPhotoCreate(t *testing.T) {
 	}
 }
 
+
 func TestPhotoPostNotAPhoto(t *testing.T) {
 	data := `{"Name":"ma super photo", "Description":" ma description"}`
 
 	body := new(bytes.Buffer)
 	writer := multipart.NewWriter(body)
+
 
 	handleErr(writer.WriteField("data", data))
 

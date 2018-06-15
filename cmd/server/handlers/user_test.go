@@ -195,7 +195,7 @@ func TestUserMe(t *testing.T) {
 		response, err := ApiResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.False(t, response.Success)
-			assert.Equal(t, response.Code, "userNotInContext")
+			assert.Equal(t, "userNotInContext", response.Code)
 		}
 	}
 
@@ -214,7 +214,7 @@ func TestUserMe(t *testing.T) {
 			u = new(user.User)
 			if assert.NoError(t, json.Unmarshal(response.Data, u)) {
 				assert.Equal(t, uint(1), u.ID)
-				assert.Equal(t, "foo@bar.com", u.Email)
+				assert.Equal(t, u.Email, "foo@bar.com")
 			}
 		}
 	}

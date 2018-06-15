@@ -48,7 +48,7 @@ func PhotoCreate(ac echo.Context) error {
 		response.Message = fmt.Sprintf("%v - %s - handlers.PhotoCreate - len(form.Value[properties]) != 1", c.RealIP(), response.UUID)
 		log.Error(response.Message)
 		response.HttpStatus = http.StatusBadRequest
-		response.Code = "reqBadMultipart"
+		response.Code = "reqBadMultipartProperties"
 		return c.JSON(response.HttpStatus, response)
 	}
 
@@ -70,7 +70,7 @@ func PhotoCreate(ac echo.Context) error {
 		response.Message = fmt.Sprintf("%v - %s - handlers.PhotoCreate - len(form.File[file]) != 1", c.RealIP(), response.UUID)
 		log.Error(response.Message)
 		response.HttpStatus = http.StatusBadRequest
-		response.Code = "reqBadMultipart"
+		response.Code = "reqBadMultipartFile"
 		return c.JSON(response.HttpStatus, response)
 	}
 
@@ -162,23 +162,24 @@ func PhotoCreate(ac echo.Context) error {
 		response.Message = fmt.Sprintf("%v - %s - handlers.PhotoCreate - put photo in store failed: %v", c.RealIP(), response.UUID, err)
 		log.Error(response.Message)
 		response.HttpStatus = http.StatusInternalServerError
-		response.Code = "storageFailed"
+		response.Code = "datastoreFailed"
 		return c.JSON(response.HttpStatus, response)
 	}
 
 	// create entry in DB
 	if err = p.Create(); err != nil {
-		response.Message = fmt.Sprintf("%v - %s - handlers.PhotoCreate - photo.Create faile: %v", c.RealIP(), response.UUID, err)
-		response.HttpStatus = http.StatusInternalServerError
-		response.Code = "dbCreateFailed"
+		response.Code = "duplicate"
+		response.Message = fmt.Sprintf("%v - %s - handlers.PhotoCreate - duplicate photo %s", c.RealIP(), response.UUID, p.Hash)
+		response.HttpStatus = http.StatusConflict
+
 		// remove photo from datastore
 		if !strings.HasPrefix(err.Error(), "UNIQUE") {
 			if err = datastore.Delete(p.Hash); err != nil {
 				c.LogErrorf(" datastore.Delete(%s): %v", p.Hash, err)
 			}
-			response.Code = "duplicate"
-			response.Message = fmt.Sprintf("%v - %s - handlers.PhotoCreate - duplicate photo %s", c.RealIP(), response.UUID, p.Hash)
-			response.HttpStatus = http.StatusConflict
+			response.Message = fmt.Sprintf("%v - %s - handlers.PhotoCreate - photo.Create failed: %v", c.RealIP(), response.UUID, err)
+			response.HttpStatus = http.StatusInternalServerError
+			response.Code = "dbCreateFailed"
 
 		}
 		log.Error(response.Message)

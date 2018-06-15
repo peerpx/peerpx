@@ -182,3 +182,40 @@ func TestUserLogin(t *testing.T) {
 		}
 	}
 }
+
+func TestUserMe(t *testing.T) {
+	e := echo.New()
+	req := httptest.NewRequest(echo.GET, "/api/v1/user/me", nil)
+	rec := httptest.NewRecorder()
+	c := middlewares.NewMockedContext(e.NewContext(req, rec))
+
+	// user not authenticated (should not happen)
+	if assert.NoError(t, UserMe(c)) {
+		assert.Equal(t, http.StatusUnauthorized, rec.Code)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.False(t, response.Success)
+			assert.Equal(t, response.Code, "userNotInContext")
+		}
+	}
+
+	// ok
+	rec = httptest.NewRecorder()
+	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	u := new(user.User)
+	u.ID = 1
+	u.Email = "foo@bar.com"
+	c.Set("u", *u)
+	if assert.NoError(t, UserMe(c)) {
+		assert.Equal(t, http.StatusOK, rec.Code)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.True(t, response.Success)
+			u = new(user.User)
+			if assert.NoError(t, json.Unmarshal(response.Data, u)) {
+				assert.Equal(t, uint(1), u.ID)
+				assert.Equal(t, "foo@bar.com", u.Email)
+			}
+		}
+	}
+}

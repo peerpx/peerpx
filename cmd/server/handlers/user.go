@@ -139,8 +139,27 @@ func UserLogin(ac echo.Context) error {
 // UserMe return user (auth needed)
 func UserMe(ac echo.Context) error {
 	c := ac.(*middlewares.AppContext)
+	response := NewApiResponse(c.UUID)
+
 	user := c.Get("u")
-	return c.JSON(http.StatusOK, user)
+	if user == nil {
+		response.Message = fmt.Sprintf("%v - %s - handlers.UserMe - c.Get(u) return empty string. it should not happen!", c.RealIP(), response.UUID)
+		log.Error(response.Message)
+		response.HttpStatus = http.StatusUnauthorized
+		response.Code = "userNotInContext"
+		return c.JSON(response.HttpStatus, response)
+	}
+	var err error
+	response.Data, err = json.Marshal(user)
+	if err != nil {
+		response.Message = fmt.Sprintf("%v - %s - handlers.UserMe - json.Marshal(user) failed: %v", c.RealIP(), response.UUID, err)
+		log.Error(response.Message)
+		response.HttpStatus = http.StatusInternalServerError
+		response.Code = "userMarshalFailed"
+		return c.JSON(response.HttpStatus, response)
+	}
+	response.Success = true
+	return c.JSON(response.HttpStatus, response)
 }
 
 // a re-utiliser pour le PUT

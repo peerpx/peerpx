@@ -9,12 +9,12 @@ import (
 
 // ApiResponse is the response returned by PeerPx API
 type ApiResponse struct {
-	UUID       string          `json:"uuid,omitempty"`
+	UUID       string          `json:"uuid"`
 	Timestamp  time.Time       `json:"timestamp"`
 	HttpStatus int             `json:"http_status"`
-	Code       string          `json:"code,omitempty"`
+	Code       string          `json:"code"`
 	Success    bool            `json:"success"`
-	Message    string          `json:"message,omitempty"`
+	Message    string          `json:"message"`
 	Data       json.RawMessage `json:"data,omitempty"`
 }
 

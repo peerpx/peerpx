@@ -260,49 +260,40 @@ func PhotoGet(c echo.Context) error {
 	return c.Blob(http.StatusOK, "image/jpeg ", photoBytes)
 }
 
-// PhotoPutResponse
-type PhotoPutResponse struct {
-	Code  uint8        `json:"code"`
-	Photo *photo.Photo `json:"photo"`
-}
-
 // PhotoPut alter photo properties
-func PhotoPut(c echo.Context) error {
+func PhotoPut(ac echo.Context) error {
+	c := ac.(*middlewares.AppContext)
+	response := NewApiResponse(c.UUID)
 
 	// read body
 	bodyBytes, err := ioutil.ReadAll(c.Request().Body)
 	defer c.Request().Body.Close()
 	if err != nil {
-		log.Errorf("%v - controllers.PhotoPut - read request body failed: %v", c.RealIP(), err)
-		return c.NoContent(http.StatusInternalServerError)
+		msg := fmt.Sprintf("%s - %s - handlers.PhotoPut - read request body failed: %v", c.RealIP(), response.UUID, err)
+		return response.Error(c, http.StatusInternalServerError, "readBodyFailed", msg)
 	}
 
 	// -> photoNew
 	var photoNew photo.Photo
 	if err := json.Unmarshal(bodyBytes, &photoNew); err != nil {
-		log.Errorf("%v - controllers.PhotoPut - unmarshall photoNew failed : %v", c.RealIP(), err)
-		return c.NoContent(http.StatusBadRequest)
+		msg := fmt.Sprintf("%s - %s - handlers.PhotoPut - unmarshal body failed: %v", c.RealIP(), response.UUID, err)
+		return response.Error(c, http.StatusInternalServerError, "unmarshallBodyFailed", msg)
 	}
-
-	// init response
-	response := PhotoPutResponse{}
 
 	// validate
 	if status := photoNew.Validate(); status != 0 {
-		response.Code = status
-		return c.JSON(http.StatusBadRequest, response)
-
+		return response.Error(c, http.StatusBadRequest, fmt.Sprintf("errValidationFailed_%d", status), "")
 	}
 
 	// get photo props ->  photoOri
 	photoOri, err := photo.GetByHash(photoNew.Hash)
 	switch err {
 	case sql.ErrNoRows:
-		return c.NoContent(http.StatusNotFound)
+		return response.Error(c, http.StatusNotFound, "errNotFound", "")
 	case nil:
 	default:
-		log.Errorf("%v - controllers.PhotoPut - models.PhotoGetByHash(%s) failed : %v", c.RealIP(), photoNew.Hash, err)
-		return c.NoContent(http.StatusInternalServerError)
+		msg := fmt.Sprintf("%s - %s - handlers.PhotoPut - photo.GetByHash(%s) failed: %v", c.RealIP(), response.UUID, photoNew.Hash, err)
+		return response.Error(c, http.StatusInternalServerError, "photoByHashFailed", msg)
 	}
 
 	// PhotoNew -> PhotoOri (update)
@@ -325,13 +316,17 @@ func PhotoPut(c echo.Context) error {
 
 	// photo.Update -> DB
 	if err = photoOri.Update(); err != nil {
-		log.Errorf("%v - controllers.PhotoPut - photoOri.Update() failed : %v", c.RealIP(), err)
-		return c.NoContent(http.StatusInternalServerError)
+		msg := fmt.Sprintf("%s - %s - handlers.PhotoPut - photo.Update failed: %v", c.RealIP(), response.UUID, err)
+		return response.Error(c, http.StatusInternalServerError, "photoUpdateFailed", msg)
 	}
 
 	// return photo
-	response.Photo = photoOri
-	return c.JSON(http.StatusOK, response)
+	data, err := json.Marshal(photoOri)
+	if err != nil {
+		msg := fmt.Sprintf("%s - %s - handlers.PhotoPut - json.Marshal(photo) failed: %v", c.RealIP(), response.UUID, err)
+		return response.Error(c, http.StatusInternalServerError, "photoMarshalFailed", msg)
+	}
+	return response.OK(c, http.StatusOK, data)
 }
 
 // PhotoDel delete a photo

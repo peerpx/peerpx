@@ -343,74 +343,103 @@ func TestPhotoGet(t *testing.T) {
 	}
 }
 
+func TestPhotoPut(t *testing.T) {
+	e := echo.New()
+
+	// body not readable
+	req := httptest.NewRequest(echo.PUT, "/api/v1/photo", errReader(0))
+	rec := httptest.NewRecorder()
+	c := middlewares.NewMockedContext(e.NewContext(req, rec))
+
+	if assert.NoError(t, PhotoPut(c)) {
+		assert.Equal(t, http.StatusInternalServerError, rec.Code)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.Equal(t, "readBodyFailed", response.Code)
+		}
+	}
+
+	// bad json
+	req = httptest.NewRequest(echo.PUT, "/api/v1/photo", nil)
+	rec = httptest.NewRecorder()
+	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+
+	if assert.NoError(t, PhotoPut(c)) {
+		assert.Equal(t, http.StatusInternalServerError, rec.Code)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.Equal(t, "unmarshallBodyFailed", response.Code)
+		}
+	}
+
+	// validation failed
+	photoJson := []byte(`{"hash": "bar", "latitude":360}`)
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest("PUT", "/api/v1/photo", bytes.NewBuffer(photoJson))
+	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+
+	if assert.NoError(t, PhotoPut(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.Equal(t, "errValidationFailed_6", response.Code)
+		}
+	}
+
+	// not found
+	photoJson = []byte(`{"hash": "bar"}`)
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest("PUT", "/api/v1/photo", bytes.NewBuffer(photoJson))
+	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(sql.ErrNoRows)
+
+	if assert.NoError(t, PhotoPut(c)) {
+		assert.Equal(t, http.StatusNotFound, rec.Code)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.Equal(t, "errNotFound", response.Code)
+		}
+	}
+
+	// db err
+	// not found
+	photoJson = []byte(`{"hash": "bar"}`)
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest("PUT", "/api/v1/photo", bytes.NewBuffer(photoJson))
+	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(errors.New("mocked"))
+
+	if assert.NoError(t, PhotoPut(c)) {
+		assert.Equal(t, http.StatusInternalServerError, rec.Code)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.Equal(t, "photoByHashFailed", response.Code)
+		}
+	}
+
+	// update failed
+	photoJson = []byte(`{"hash": "bar"}`)
+	rec = httptest.NewRecorder()
+	req = httptest.NewRequest("PUT", "/api/v1/photo", bytes.NewBuffer(photoJson))
+	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	db.Mock.ExpectQuery("^SELECT(.*)").
+		WillReturnRows(sqlmock.NewRows([]string{"id", "hash"}).AddRow(1, "mocked"))
+	db.Mock.ExpectPrepare("^UPDATE photos (.*)").
+		WillReturnError(errors.New("prepare error"))
+
+	if assert.NoError(t, PhotoPut(c)) {
+		assert.Equal(t, http.StatusInternalServerError, rec.Code)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.Equal(t, "photoUpdateFailed", response.Code)
+		}
+	}
+
+}
+
 /*
 
-func TestPhotoGet(t *testing.T) {
-	//  init mocked datastore
-	datastore.InitMokedDatastore([]byte{1, 2, 3}, nil)
 
-	e := echo.New()
-	req := httptest.NewRequest(echo.GET, "/", nil)
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-	c.Set("id", "mocked")
-	c.Set("size", "small")
-	if assert.NoError(t, PhotoGet(c)) {
-		assert.Equal(t, http.StatusOK, rec.Code)
-		data, err := ioutil.ReadAll(rec.Body)
-		assert.NoError(t, err)
-		assert.Equal(t, []byte{1, 2, 3}, data)
-	}
-}
-
-func TestPhotoGetNotfound(t *testing.T) {
-	//  init mocked datastore
-	datastore.InitMokedDatastore(nil, datastore.ErrNotFound)
-
-	e := echo.New()
-	req := httptest.NewRequest(echo.GET, "/", nil)
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-	c.Set("id", "mocked")
-	c.Set("size", "small")
-	if assert.NoError(t, PhotoGet(c)) {
-		assert.Equal(t, http.StatusNotFound, rec.Code)
-	}
-}
-
-// TODO ?
-func TestPhotoResize(t *testing.T) {
-}
-
-func TestPhotoDel(t *testing.T) {
-	db.Mock.ExpectPrepare("^DELETE FROM photos (.*)").
-		ExpectExec().
-		WillReturnResult(sqlmock.NewResult(1, 1))
-	datastore.InitMokedDatastore(nil, nil)
-	e := echo.New()
-	req := httptest.NewRequest(echo.DELETE, "/", nil)
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-	c.Set("id", "mocked")
-	if assert.NoError(t, PhotoDel(c)) {
-		assert.Equal(t, http.StatusOK, rec.Code)
-	}
-}
-
-func TestPhotoSearchNoArgs(t *testing.T) {
-	e := echo.New()
-	req := httptest.NewRequest(echo.GET, "/", nil)
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-	//c.Set("id", "mocked")
-
-	// test "valid" hash
-	rows := sqlmock.NewRows([]string{"id", "hash"}).AddRow(1, "mocked")
-	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnRows(rows)
-	if assert.NoError(t, PhotoSearch(c)) {
-		assert.Equal(t, http.StatusOK, rec.Code)
-	}
-}
 
 func TestPhotoPut(t *testing.T) {
 	e := echo.New()
@@ -500,4 +529,37 @@ func TestPhotoPut(t *testing.T) {
 		}
 	}
 }
+
+
+
+func TestPhotoDel(t *testing.T) {
+	db.Mock.ExpectPrepare("^DELETE FROM photos (.*)").
+		ExpectExec().
+		WillReturnResult(sqlmock.NewResult(1, 1))
+	datastore.InitMokedDatastore(nil, nil)
+	e := echo.New()
+	req := httptest.NewRequest(echo.DELETE, "/", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	c.Set("id", "mocked")
+	if assert.NoError(t, PhotoDel(c)) {
+		assert.Equal(t, http.StatusOK, rec.Code)
+	}
+}
+
+func TestPhotoSearchNoArgs(t *testing.T) {
+	e := echo.New()
+	req := httptest.NewRequest(echo.GET, "/", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	//c.Set("id", "mocked")
+
+	// test "valid" hash
+	rows := sqlmock.NewRows([]string{"id", "hash"}).AddRow(1, "mocked")
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnRows(rows)
+	if assert.NoError(t, PhotoSearch(c)) {
+		assert.Equal(t, http.StatusOK, rec.Code)
+	}
+}
+
 */

@@ -314,6 +314,35 @@ func TestPhotoGetProperties(t *testing.T) {
 	}
 }
 
+func TestPhotoGet(t *testing.T) {
+	e := echo.New()
+	// not found
+	datastore.InitMokedDatastore(nil, datastore.ErrNotFound)
+	req := httptest.NewRequest(echo.GET, "/api/v1/photo/hash/size", nil)
+	rec := httptest.NewRecorder()
+	c := middlewares.NewMockedContext(e.NewContext(req, rec))
+	if assert.NoError(t, PhotoGet(c)) {
+		assert.Equal(t, http.StatusNotFound, rec.Code)
+	}
+	// datastore error
+	datastore.InitMokedDatastore(nil, errors.New("mocked"))
+	req = httptest.NewRequest(echo.GET, "/api/v1/photo/hash/size", nil)
+	rec = httptest.NewRecorder()
+	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	if assert.NoError(t, PhotoGet(c)) {
+		assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	}
+
+	// ok
+	datastore.InitMokedDatastore([]byte{1, 2, 3}, nil)
+	rec = httptest.NewRecorder()
+	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	if assert.NoError(t, PhotoGet(c)) {
+		assert.Equal(t, http.StatusOK, rec.Code)
+		assert.Equal(t, []byte{1, 2, 3}, rec.Body.Bytes())
+	}
+}
+
 /*
 
 func TestPhotoGet(t *testing.T) {

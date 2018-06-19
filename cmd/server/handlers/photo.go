@@ -35,21 +35,16 @@ func PhotoCreate(ac echo.Context) error {
 	// get multipart
 	form, err := c.MultipartForm()
 	if err != nil {
-		response.Message = fmt.Sprintf("%s - %s - handlers.PhotoCreate - c.MultipartForm() failed: %v", c.RealIP(), response.UUID, err)
-		log.Error(response.Message)
-		response.HttpStatus = http.StatusBadRequest
-		response.Code = "reqNotMultipart"
-		return c.JSON(response.HttpStatus, response)
+		msg := fmt.Sprintf("%s - %s - handlers.PhotoCreate - c.MultipartForm() failed: %v", c.RealIP(), response.UUID, err)
+		return response.Error(c, http.StatusBadRequest, "reqNotMultipart", msg)
 	}
 
 	// get photo properties
 	photoProperties := form.Value["properties"]
 	if len(photoProperties) != 1 {
-		response.Message = fmt.Sprintf("%s - %s - handlers.PhotoCreate - len(form.Value[properties]) != 1", c.RealIP(), response.UUID)
-		log.Error(response.Message)
-		response.HttpStatus = http.StatusBadRequest
-		response.Code = "reqBadMultipartProperties"
-		return c.JSON(response.HttpStatus, response)
+		msg := fmt.Sprintf("%s - %s - handlers.PhotoCreate - len(form.Value[properties]) != 1", c.RealIP(), response.UUID)
+		return response.Error(c, http.StatusBadRequest, "reqBadMultipartProperties", msg)
+
 	}
 
 	// TODO verifier les props
@@ -57,93 +52,67 @@ func PhotoCreate(ac echo.Context) error {
 	// unmarshall photo
 	p := new(photo.Photo)
 	if err := json.Unmarshal([]byte(photoProperties[0]), p); err != nil {
-		response.Message = fmt.Sprintf("%s - %s - handlers.PhotoCreate - umarshall form.Value[properties] failed: %v", c.RealIP(), response.UUID, err)
-		log.Error(response.Message)
-		response.HttpStatus = http.StatusBadRequest
-		response.Code = "reqBadPhotoProperties"
-		return c.JSON(response.HttpStatus, response)
+		msg := fmt.Sprintf("%s - %s - handlers.PhotoCreate - umarshall form.Value[properties] failed: %v", c.RealIP(), response.UUID, err)
+		return response.Error(c, http.StatusBadRequest, "reqBadPhotoProperties", msg)
+
 	}
 
 	// get raw photo ("file")
 	photoFile := form.File["file"]
 	if len(photoFile) != 1 {
-		response.Message = fmt.Sprintf("%s - %s - handlers.PhotoCreate - len(form.File[file]) != 1", c.RealIP(), response.UUID)
-		log.Error(response.Message)
-		response.HttpStatus = http.StatusBadRequest
-		response.Code = "reqBadMultipartFile"
-		return c.JSON(response.HttpStatus, response)
+		msg := fmt.Sprintf("%s - %s - handlers.PhotoCreate - len(form.File[file]) != 1", c.RealIP(), response.UUID)
+		return response.Error(c, http.StatusBadRequest, "reqBadMultipartFile", msg)
 	}
 
 	// open photo file
 	fd, err := photoFile[0].Open()
 	if err != nil {
-		response.Message = fmt.Sprintf("%s - %s - handlers.PhotoCreate - photoFile[0].Open() failed: %v", c.RealIP(), response.UUID, err)
-		log.Error(response.Message)
-		response.HttpStatus = http.StatusInternalServerError
-		response.Code = "openFormFileFailed"
-		return c.JSON(response.HttpStatus, response)
+		msg := fmt.Sprintf("%s - %s - handlers.PhotoCreate - photoFile[0].Open() failed: %v", c.RealIP(), response.UUID, err)
+		return response.Error(c, http.StatusInternalServerError, "openFormFileFailed", msg)
 	}
 	defer fd.Close()
 
 	// read photo file
 	photoBytes, err := ioutil.ReadAll(fd)
 	if err != nil {
-		response.Message = fmt.Sprintf("%s - %s - handlers.PhotoCreate - ioutil.ReadAll(photoFile) failed: %v", c.RealIP(), response.UUID, err)
-		log.Error(response.Message)
-		response.HttpStatus = http.StatusInternalServerError
-		response.Code = "readFormFileFailed"
-		return c.JSON(response.HttpStatus, response)
+		msg := fmt.Sprintf("%s - %s - handlers.PhotoCreate - ioutil.ReadAll(photoFile) failed: %v", c.RealIP(), response.UUID, err)
+		return response.Error(c, http.StatusInternalServerError, "readFormFileFailed", msg)
 	}
 
 	// check mime type
 	mimeType := http.DetectContentType(photoBytes)
 	if mimeType != "image/jpeg" && mimeType != "image/png" {
-		response.Message = fmt.Sprintf("%s - %s - handlers.PhotoCreate - %s is not supported for photo", c.RealIP(), response.UUID, mimeType)
-		log.Info(response.Message)
-		response.HttpStatus = http.StatusBadRequest
-		response.Code = "unsupportedPhotoFormat"
-		return c.JSON(response.HttpStatus, response)
+		msg := fmt.Sprintf("%s - %s - handlers.PhotoCreate - %s is not supported for photo", c.RealIP(), response.UUID, mimeType)
+		return response.Error(c, http.StatusBadRequest, "unsupportedPhotoFormat", msg)
 	}
 
 	// resize && re-encode
 	img, err := image.NewFromBytes(photoBytes)
 	if err != nil {
-		response.Message = fmt.Sprintf("%s - %s - handlers.PhotoCreate - image.NewFromBytes(photoBytes) failed: %v", c.RealIP(), response.UUID, err)
-		log.Error(response.Message)
-		response.HttpStatus = http.StatusInternalServerError
-		response.Code = "imageNewFailed"
-		return c.JSON(response.HttpStatus, response)
+		msg := fmt.Sprintf("%s - %s - handlers.PhotoCreate - image.NewFromBytes(photoBytes) failed: %v", c.RealIP(), response.UUID, err)
+		return response.Error(c, http.StatusInternalServerError, "imageNewFailed", msg)
 	}
 
 	if img.Width() > config.GetIntDefault("photo.maxWidth", 2000) || img.Height() > config.GetIntDefault("photo.maxHeight", 2000) {
 		err = img.ResizeToFit(config.GetIntDefault("photo.maxWidth", 2000), config.GetIntDefault("photo.maxHeight", 2000))
 		if err != nil && err != image.ErrUpscaleNotAllowed {
-			response.Message = fmt.Sprintf("%s - %s - handlers.PhotoCreate - img.ResizeToFit failed: %v", c.RealIP(), response.UUID, err)
-			log.Error(response.Message)
-			response.HttpStatus = http.StatusInternalServerError
-			response.Code = "resizeFailed"
-			return c.JSON(response.HttpStatus, response)
+			msg := fmt.Sprintf("%s - %s - handlers.PhotoCreate - img.ResizeToFit failed: %v", c.RealIP(), response.UUID, err)
+			return response.Error(c, http.StatusInternalServerError, "resizeFailed", msg)
 		}
 	}
 
 	// To JPEG
 	photoBytes, err = img.JPEG(100)
 	if err != nil {
-		response.Message = fmt.Sprintf("%s - %s - handlers.PhotoCreate - img.JPEG failed: %v", c.RealIP(), response.UUID, err)
-		log.Error(response.Message)
-		response.HttpStatus = http.StatusInternalServerError
-		response.Code = "conversionJpegFailed"
-		return c.JSON(response.HttpStatus, response)
+		msg := fmt.Sprintf("%s - %s - handlers.PhotoCreate - img.JPEG failed: %v", c.RealIP(), response.UUID, err)
+		return response.Error(c, http.StatusInternalServerError, "conversionJpegFailed", msg)
 	}
 
 	// get hash
 	p.Hash, err = hasher.GetHash(photoBytes)
 	if err != nil {
-		response.Message = fmt.Sprintf("%s - %s - handlers.PhotoCreate - hasher.GetHash(photoBytes) failed: %v", c.RealIP(), response.UUID, err)
-		log.Error(response.Message)
-		response.HttpStatus = http.StatusInternalServerError
-		response.Code = "conversionJpegFailed"
-		return c.JSON(response.HttpStatus, response)
+		msg := fmt.Sprintf("%s - %s - handlers.PhotoCreate - hasher.GetHash(photoBytes) failed: %v", c.RealIP(), response.UUID, err)
+		return response.Error(c, http.StatusInternalServerError, "conversionJpegFailed", msg)
 	}
 
 	//  size
@@ -159,11 +128,8 @@ func PhotoCreate(ac echo.Context) error {
 
 	// save in datastore
 	if err = datastore.Put(p.Hash, photoBytes); err != nil {
-		response.Message = fmt.Sprintf("%s - %s - handlers.PhotoCreate - put photo in store failed: %v", c.RealIP(), response.UUID, err)
-		log.Error(response.Message)
-		response.HttpStatus = http.StatusInternalServerError
-		response.Code = "datastoreFailed"
-		return c.JSON(response.HttpStatus, response)
+		msg := fmt.Sprintf("%s - %s - handlers.PhotoCreate - put photo in store failed: %v", c.RealIP(), response.UUID, err)
+		return response.Error(c, http.StatusInternalServerError, "datastoreFailed", msg)
 	}
 
 	// create entry in DB
@@ -187,19 +153,13 @@ func PhotoCreate(ac echo.Context) error {
 	}
 
 	// marshal photo
-	response.Data, err = json.Marshal(p)
+	data, err := json.Marshal(p)
 	if err != nil {
-		response.Message = fmt.Sprintf("%s - %s - handlers.PhotoCreate - json.Marshal(photo) failed: %v", c.RealIP(), response.UUID, err)
-		log.Error(response.Message)
-		response.HttpStatus = http.StatusInternalServerError
-		response.Code = "marshalFailed"
-		return c.JSON(response.HttpStatus, response)
+		msg := fmt.Sprintf("%s - %s - handlers.PhotoCreate - json.Marshal(photo) failed: %v", c.RealIP(), response.UUID, err)
+		return response.Error(c, http.StatusInternalServerError, "marshalFailed", msg)
 	}
 
-	// GG
-	response.Success = true
-	response.HttpStatus = http.StatusCreated
-	return c.JSON(response.HttpStatus, response)
+	return response.OK(c, http.StatusCreated, data)
 }
 
 // PhotoGetProperties returns PhotoProperties
@@ -218,26 +178,17 @@ func PhotoGetProperties(ac echo.Context) error {
 			response.HttpStatus = http.StatusNotFound
 			return c.JSON(response.HttpStatus, response)
 		}
-		response.Message = fmt.Sprintf("%s - %s - handlers.PhotoGetProperties - photo.GetByHash(%s) failed: %v", c.RealIP(), response.UUID, hash, err)
-		log.Error(response.Message)
-		response.Code = "getByHashFailed"
-		response.HttpStatus = http.StatusInternalServerError
-		return c.JSON(response.HttpStatus, response)
+		msg := fmt.Sprintf("%s - %s - handlers.PhotoGetProperties - photo.GetByHash(%s) failed: %v", c.RealIP(), response.UUID, hash, err)
+		return response.Error(c, http.StatusInternalServerError, "getByHashFailed", msg)
 	}
 	// marshal photo
-	response.Data, err = json.Marshal(p)
+	data, err := json.Marshal(p)
 	if err != nil {
-		response.Message = fmt.Sprintf("%s - %s - handlers.PhotoGetProperties - json.Marshal(photo) failed: %v", c.RealIP(), response.UUID, err)
-		log.Error(response.Message)
-		response.HttpStatus = http.StatusInternalServerError
-		response.Code = "marshalFailed"
-		return c.JSON(response.HttpStatus, response)
+		msg := fmt.Sprintf("%s - %s - handlers.PhotoGetProperties - json.Marshal(photo) failed: %v", c.RealIP(), response.UUID, err)
+		return response.Error(c, http.StatusInternalServerError, "marshalFailed", msg)
 	}
 
-	// GG
-	response.Success = true
-	response.HttpStatus = http.StatusOK
-	return c.JSON(response.HttpStatus, response)
+	return response.OK(c, http.StatusOK, data)
 }
 
 // PhotoGet return a photo
@@ -330,20 +281,28 @@ func PhotoPut(ac echo.Context) error {
 }
 
 // PhotoDel delete a photo
-func PhotoDel(c echo.Context) error {
+func PhotoDel(ac echo.Context) error {
+	c := ac.(*middlewares.AppContext)
+	response := NewApiResponse(c.UUID)
+
 	// get hash
 	hash := c.Param("id")
 	if err := photo.DeleteByHash(hash); err != nil {
-		log.Errorf("%v - controllers.PhotoGet - unable to delete photo %s: %v", c.RealIP(), hash, err)
-		return c.NoContent(http.StatusInternalServerError)
+		if err == sql.ErrNoRows {
+			return response.Error(c, http.StatusNotFound, "notFound", "")
+		}
+		msg := fmt.Sprintf("%s - %s - handlers.PhotoDel - photo.DeleteByHash(%s) failed: %v", c.RealIP(), response.UUID, hash, err)
+		return response.Error(c, http.StatusInternalServerError, "photoDeleteByHashFailed", msg)
 	}
-	return c.NoContent(http.StatusOK)
+	return response.OK(c, http.StatusOK, nil)
 }
 
 // PhotoResize returns resized photo
 func PhotoResize(c echo.Context) error {
+
 	var width, height int
 	var err error
+
 	// hauteur ou largeur
 	widthStr := c.Param("width")
 	heightStr := c.Param("height")

@@ -45,6 +45,7 @@ func (r *ApiResponse) Send(c *middlewares.AppContext, httpStatus int, code, mess
 	r.HttpStatus = httpStatus
 	r.Message = message
 	r.Code = code
+	r.Data = data
 	return c.JSON(httpStatus, r)
 }
 

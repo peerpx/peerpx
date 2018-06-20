@@ -53,10 +53,6 @@ create table users
 	user_url varchar(255),
 	admin bool,
 	avatar_url varchar(255),
-	api_key varchar(255),
-	uid varchar(255),
-	gid varchar(255),
-	home_dir varchar(255),
 	password varchar(255)
 )
 ;

@@ -3,6 +3,7 @@ package user
 import (
 	"errors"
 	"fmt"
+	"log"
 	"net/mail"
 	"strings"
 	"unicode/utf8"
@@ -102,6 +103,7 @@ func GetByID(id int) (user *User, err error) {
 
 // UserGetByUsername return user by its ID
 func GetByUsername(username string) (user *User, err error) {
+	log.Printf("USERNAME %s", username)
 	user = new(User)
 	username = strings.TrimSpace(strings.ToLower(username))
 	err = db.Get(user, "SELECT * FROM users WHERE username=$1", username)
@@ -110,6 +112,7 @@ func GetByUsername(username string) (user *User, err error) {
 
 // GetByEmail returns user by his email
 func GetByEmail(email string) (user *User, err error) {
+	log.Printf("MAIL %s", email)
 	user = new(User)
 	email = strings.TrimSpace(strings.ToLower(email))
 	err = db.Get(user, "SELECT * FROM users WHERE email=?", email)
@@ -120,10 +123,12 @@ func GetByEmail(email string) (user *User, err error) {
 func Login(login, password string) (user *User, err error) {
 	isEmail := false
 	login = strings.ToLower(login)
+
 	_, err = mail.ParseAddress(login)
-	if err != nil {
+	if err == nil {
 		isEmail = true
 	}
+
 	if isEmail {
 		user, err = GetByEmail(login)
 	} else {

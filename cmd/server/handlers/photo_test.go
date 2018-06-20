@@ -485,21 +485,72 @@ func TestPhotoDel(t *testing.T) {
 	}
 }
 
-/*
+func TestPhotoResize(t *testing.T) {
+	e := echo.New()
 
-func TestPhotoSearchNoArgs(t *testing.T) {
+	// height is not Atoiable
+	req := httptest.NewRequest(echo.GET, "/api/v1/photo/hash/height/mocked", nil)
+	rec := httptest.NewRecorder()
+	c := middlewares.NewMockedContext(e.NewContext(req, rec))
+	c.SetPath("/api/v1/photo/hash/height/:height")
+	c.SetParamNames("height")
+	c.SetParamValues("mocked")
+	if assert.NoError(t, PhotoResize(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	}
+
+	// height is not Atoiable
+	c.SetPath("/api/v1/photo/id/width/:width")
+	c.SetParamNames("width")
+	c.SetParamValues("mocked")
+	if assert.NoError(t, PhotoResize(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	}
+
+	// height == width == 0
+	c.SetPath("/api/v1/photo/id/width/:width")
+	c.SetParamNames("width")
+	c.SetParamValues("")
+	if assert.NoError(t, PhotoResize(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	}
+
+	// not found in datastore
+	rec = httptest.NewRecorder()
+	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c.SetParamNames("width")
+	c.SetParamValues("100")
+
+	if err := datastore.InitMokedDatastore(nil, errors.New("notfound")); err != nil {
+		panic(err)
+	}
+	if assert.NoError(t, PhotoResize(c)) {
+		assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	}
+
+	// ok
+
+}
+
+func TestPhotoSearch(t *testing.T) {
 	e := echo.New()
 	req := httptest.NewRequest(echo.GET, "/", nil)
 	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-	//c.Set("id", "mocked")
+	c := middlewares.NewMockedContext(e.NewContext(req, rec))
+
+	// error
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(errors.New("mocked"))
+	if assert.NoError(t, PhotoSearch(c)) {
+		assert.Equal(t, http.StatusInternalServerError, rec.Code)
+	}
 
 	// test "valid" hash
+	rec = httptest.NewRecorder()
+	c = middlewares.NewMockedContext(e.NewContext(req, rec))
 	rows := sqlmock.NewRows([]string{"id", "hash"}).AddRow(1, "mocked")
 	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnRows(rows)
 	if assert.NoError(t, PhotoSearch(c)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 	}
-}
 
-*/
+}

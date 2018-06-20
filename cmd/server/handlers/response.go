@@ -40,12 +40,11 @@ func ApiResponseFromBody(body *bytes.Buffer) (ApiResponse, error) {
 	return response, err
 }
 
-func (r *ApiResponse) Send(c *middlewares.AppContext, httpStatus int, code, message string, data json.RawMessage) error {
+func (r *ApiResponse) Send(c *middlewares.AppContext, httpStatus int, code, message string) error {
 	r.Timestamp = time.Now()
 	r.HttpStatus = httpStatus
 	r.Message = message
 	r.Code = code
-	r.Data = data
 	return c.JSON(httpStatus, r)
 }
 
@@ -54,10 +53,10 @@ func (r *ApiResponse) Error(c *middlewares.AppContext, httpStatus int, code, mes
 	if message != "" {
 		log.Error(message)
 	}
-	return r.Send(c, httpStatus, code, message, nil)
+	return r.Send(c, httpStatus, code, message)
 }
 
-func (r *ApiResponse) OK(c *middlewares.AppContext, httpStatus int, data json.RawMessage) error {
+func (r *ApiResponse) OK(c *middlewares.AppContext, httpStatus int) error {
 	r.Success = true
-	return r.Send(c, httpStatus, "", "", data)
+	return r.Send(c, httpStatus, "", "")
 }

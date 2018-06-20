@@ -153,13 +153,13 @@ func PhotoCreate(ac echo.Context) error {
 	}
 
 	// marshal photo
-	data, err := json.Marshal(p)
+	response.Data, err = json.Marshal(p)
 	if err != nil {
+		response.Data = nil
 		msg := fmt.Sprintf("%s - %s - handlers.PhotoCreate - json.Marshal(photo) failed: %v", c.RealIP(), response.UUID, err)
 		return response.Error(c, http.StatusInternalServerError, "marshalFailed", msg)
 	}
-
-	return response.OK(c, http.StatusCreated, data)
+	return response.OK(c, http.StatusCreated)
 }
 
 // PhotoGetProperties returns PhotoProperties
@@ -182,13 +182,13 @@ func PhotoGetProperties(ac echo.Context) error {
 		return response.Error(c, http.StatusInternalServerError, "getByHashFailed", msg)
 	}
 	// marshal photo
-	data, err := json.Marshal(p)
+	response.Data, err = json.Marshal(p)
 	if err != nil {
 		msg := fmt.Sprintf("%s - %s - handlers.PhotoGetProperties - json.Marshal(photo) failed: %v", c.RealIP(), response.UUID, err)
 		return response.Error(c, http.StatusInternalServerError, "marshalFailed", msg)
 	}
 
-	return response.OK(c, http.StatusOK, data)
+	return response.OK(c, http.StatusOK)
 }
 
 // PhotoGet return a photo
@@ -272,12 +272,12 @@ func PhotoPut(ac echo.Context) error {
 	}
 
 	// return photo
-	data, err := json.Marshal(photoOri)
+	response.Data, err = json.Marshal(photoOri)
 	if err != nil {
 		msg := fmt.Sprintf("%s - %s - handlers.PhotoPut - json.Marshal(photo) failed: %v", c.RealIP(), response.UUID, err)
 		return response.Error(c, http.StatusInternalServerError, "photoMarshalFailed", msg)
 	}
-	return response.OK(c, http.StatusOK, data)
+	return response.OK(c, http.StatusOK)
 }
 
 // PhotoDel delete a photo
@@ -294,7 +294,7 @@ func PhotoDel(ac echo.Context) error {
 		msg := fmt.Sprintf("%s - %s - handlers.PhotoDel - photo.DeleteByHash(%s) failed: %v", c.RealIP(), response.UUID, hash, err)
 		return response.Error(c, http.StatusInternalServerError, "photoDeleteByHashFailed", msg)
 	}
-	return response.OK(c, http.StatusOK, nil)
+	return response.OK(c, http.StatusOK)
 }
 
 // PhotoResize returns resized photo
@@ -365,18 +365,27 @@ type PhotoSearchResponse struct {
 }
 
 // PhotoSearch return an array of photos regarding the optionnals search params (TMP)
-func PhotoSearch(c echo.Context) error {
-	//TODO: take account of optional params
+func PhotoSearch(ac echo.Context) error {
+	c := ac.(*middlewares.AppContext)
+	response := NewApiResponse(c.UUID)
+
 	photos, err := photo.List()
 	if err != nil {
-		log.Errorf("%v - controllers.PhotoSearch - unable to list photos: %v", c.RealIP(), err)
-		return c.NoContent(http.StatusInternalServerError)
+		msg := fmt.Sprintf("%s - %s - handlers.PhotoSearch - photo.List() failed: %v", c.RealIP(), response.UUID, err)
+		return response.Error(c, http.StatusInternalServerError, "photoListFailed", msg)
 	}
-	response := PhotoSearchResponse{
+	data := PhotoSearchResponse{
 		Total:  len(photos),
 		Limit:  0,
 		Offset: 0,
 		Data:   photos,
 	}
-	return c.JSON(http.StatusOK, response)
+
+	response.Data, err = json.Marshal(data)
+	if err != nil {
+		msg := fmt.Sprintf("%s - %s - handlers.PhotoSearch - json.Marshal(data) failed: %v", c.RealIP(), response.UUID, err)
+		return response.Error(c, http.StatusInternalServerError, "marshalFailed", msg)
+	}
+
+	return response.OK(c, http.StatusOK)
 }

@@ -1,5 +1,3 @@
-CREATE TABLE IF NOT EXISTS "users" ("id" integer primary key autoincrement,"created_at" datetime,"updated_at" datetime,"deleted_at" datetime,"username" varchar(255),"firstname" varchar(255),"lastname" varchar(255),"gender" integer,"email" varchar(255),"address" varchar(255),"city" varchar(255),"state" varchar(255),"zip" varchar(255),"country" varchar(255),"about" varchar(255),"locale" varchar(255),"show_nsfw" bool,"user_url" varchar(255),"admin" bool,"avatar_url" varchar(255),"api_key" varchar(255) , "uid" varchar(255), "gid" varchar(255), "home_dir" varchar(255), "password" varchar(255));
-
 create table photos
 (
 	id integer

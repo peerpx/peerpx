@@ -34,7 +34,6 @@ type User struct {
 	UserURL   string `db:"user_url",json:"user_url"`
 	Admin     bool   `json:"admin"`
 	AvatarURL string `db:"avatar_url",json:"avatar_url"`
-	APIKey    string `json:"-"`
 }
 
 // Gender is the user gender
@@ -150,12 +149,12 @@ func Login(login, password string) (user *User, err error) {
 
 // Create save new user in DB
 func (u *User) Create() error {
-	stmt, err := db.Preparex("INSERT INTO users (username,firstname,lastname,gender,email,address,city,state,zip,country,about,locale,show_nsfw,user_url,admin,avatar_url,api_key,password) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+	stmt, err := db.Preparex("INSERT INTO users (username,firstname,lastname,gender,email,address,city,state,zip,country,about,locale,show_nsfw,user_url,admin,avatar_url,password) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
 	if err != nil {
 		return err
 	}
 
-	res, err := stmt.Exec(u.Username, u.Firstname, u.Lastname, u.Gender, u.Email, u.Address, u.City, u.State, u.Zip, u.Country, u.About, u.Locale, u.ShowNsfw, u.UserURL, u.Admin, u.AvatarURL, u.APIKey, u.Password)
+	res, err := stmt.Exec(u.Username, u.Firstname, u.Lastname, u.Gender, u.Email, u.Address, u.City, u.State, u.Zip, u.Country, u.About, u.Locale, u.ShowNsfw, u.UserURL, u.Admin, u.AvatarURL, u.Password)
 	if err != nil {
 		return err
 	}
@@ -169,11 +168,11 @@ func (u *User) Update() error {
 	if u.ID == 0 {
 		return errors.New("user unknown in database")
 	}
-	stmt, err := db.Preparex("UPDATE users SET username = ?, firstname = ?, lastname = ?, gender = ?, email = ?, address = ?, city = ?, state  = ?, zip = ?, country = ?, about = ?, locale = ?, show_nsfw = ?, user_url = ?, admin = ?, avatar_url = ?, api_key = ?, password = ? WHERE id = ?")
+	stmt, err := db.Preparex("UPDATE users SET username = ?, firstname = ?, lastname = ?, gender = ?, email = ?, address = ?, city = ?, state  = ?, zip = ?, country = ?, about = ?, locale = ?, show_nsfw = ?, user_url = ?, admin = ?, avatar_url = ?, password = ? WHERE id = ?")
 	if err != nil {
 		return err
 	}
-	res, err := stmt.Exec(u.Username, u.Firstname, u.Lastname, u.Gender, u.Email, u.Address, u.City, u.State, u.Zip, u.Country, u.About, u.Locale, u.ShowNsfw, u.UserURL, u.Admin, u.AvatarURL, u.APIKey, u.Password, u.ID)
+	res, err := stmt.Exec(u.Username, u.Firstname, u.Lastname, u.Gender, u.Email, u.Address, u.City, u.State, u.Zip, u.Country, u.About, u.Locale, u.ShowNsfw, u.UserURL, u.Admin, u.AvatarURL, u.Password, u.ID)
 	if err != nil {
 		return err
 	}

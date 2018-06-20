@@ -54,6 +54,7 @@ func UserCreate(ac echo.Context) error {
 		response.Code = "userCreateFailed"
 		return c.JSON(response.HttpStatus, response)
 	}
+
 	response.Data, err = json.Marshal(user)
 	if err != nil {
 		response.Message = fmt.Sprintf("%v - %s - handlers.UserAdd - json.Marshal(user) failed: %v", c.RealIP(), response.UUID, err)

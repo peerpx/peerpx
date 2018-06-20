@@ -12,7 +12,6 @@ import (
 	"github.com/labstack/echo"
 	"github.com/peerpx/peerpx/cmd/server/middlewares"
 	"github.com/peerpx/peerpx/entities/user"
-	"github.com/peerpx/peerpx/services/log"
 )
 
 type userCreateRequest struct {
@@ -29,45 +28,31 @@ func UserCreate(ac echo.Context) error {
 	// get body
 	body, err := ioutil.ReadAll(c.Request().Body)
 	if err != nil {
-		response.Message = fmt.Sprintf("%v - %s - handlers.UserCreate - failed to read request body: %v", c.RealIP(), response.UUID, err)
-		log.Error(response.Message)
-		response.HttpStatus = http.StatusBadRequest
-		response.Code = "requestBodyNotReadable"
-		return c.JSON(response.HttpStatus, response)
-	}
+		msg := fmt.Sprintf("%s - %s - handlers.UserCreate - failed to read request body: %v", c.RealIP(), response.UUID, err)
+		return response.Error(c, http.StatusBadRequest, "requestBodyNotReadable", msg)
 
+	}
 	// unmarshal
 	requestData := new(userCreateRequest)
 	if err = json.Unmarshal(body, requestData); err != nil {
-		response.Message = fmt.Sprintf("%v - %s - handlers.UserAdd - unmarshall request body failed: %v", c.RealIP(), response.UUID, err)
-		log.Error(response.Message)
-		response.HttpStatus = http.StatusBadRequest
-		response.Code = "requestBodyNotValidJson"
-		return c.JSON(response.HttpStatus, response)
+		msg := fmt.Sprintf("%s - %s - handlers.UserAdd - unmarshall request body failed: %v", c.RealIP(), response.UUID, err)
+		return response.Error(c, http.StatusBadRequest, "requestBodyNotValidJson", msg)
 	}
 
 	user, err := user.Create(requestData.Email, requestData.Username, requestData.Password)
 	if err != nil {
-		response.Message = fmt.Sprintf("%v - %s - handlers.UserAdd - user.Create() failed: %v", c.RealIP(), response.UUID, err)
-		log.Error(response.Message)
-		response.HttpStatus = http.StatusInternalServerError
-		response.Code = "userCreateFailed"
-		return c.JSON(response.HttpStatus, response)
+		msg := fmt.Sprintf("%s - %s - handlers.UserAdd - user.Create() failed: %v", c.RealIP(), response.UUID, err)
+		return response.Error(c, http.StatusInternalServerError, "userCreateFailed", msg)
 	}
 
 	response.Data, err = json.Marshal(user)
 	if err != nil {
-		response.Message = fmt.Sprintf("%v - %s - handlers.UserAdd - json.Marshal(user) failed: %v", c.RealIP(), response.UUID, err)
-		log.Error(response.Message)
-		response.HttpStatus = http.StatusInternalServerError
-		response.Code = "userMarshalFailed"
-		return c.JSON(response.HttpStatus, response)
+		msg := fmt.Sprintf("%s - %s - handlers.UserAdd - json.Marshal(user) failed: %v", c.RealIP(), response.UUID, err)
+		return response.Error(c, http.StatusInternalServerError, "userMarshalFailed", msg)
 	}
 
-	response.Success = true
-	response.HttpStatus = http.StatusCreated
-	c.LogInfof("new user created: %s %s", user.Username, user.Email)
-	return c.JSON(response.HttpStatus, response)
+	c.LogInfof("%s - %s - handlers.UserAdd - new user created: %s %s", c.RealIP(), response.UUID, user.Username, user.Email)
+	return response.OK(c, http.StatusCreated)
 }
 
 type userLoginRequest struct {
@@ -82,59 +67,41 @@ func UserLogin(ac echo.Context) error {
 
 	body, err := ioutil.ReadAll(c.Request().Body)
 	if err != nil {
-		response.Message = fmt.Sprintf("%v - %s - handlers.UserLogin - unable to read request body: %v", c.RealIP(), response.UUID, err)
-		log.Error(response.Message)
-		response.Code = "requestBodyNotReadable"
-		response.HttpStatus = http.StatusBadRequest
-		return c.JSON(response.HttpStatus, response)
+		msg := fmt.Sprintf("%s - %s - handlers.UserLogin - unable to read request body: %v", c.RealIP(), response.UUID, err)
+		return response.Error(c, http.StatusBadRequest, "requestBodyNotReadable", msg)
 	}
+
 	// unmarshall
 	requestData := new(userLoginRequest)
 	if err = json.Unmarshal(body, requestData); err != nil {
-		response.Message = fmt.Sprintf("%v - %s - handlers.UserLogin - unable to unmarshall request body: %v", c.RealIP(), response.UUID, err)
-		log.Error(response.Message)
-		response.HttpStatus = http.StatusBadRequest
-		response.Code = "requestBodyNotValidJson"
-		return c.JSON(response.HttpStatus, response)
+		msg := fmt.Sprintf("%s - %s - handlers.UserLogin - unable to unmarshall request body: %v", c.RealIP(), response.UUID, err)
+		return response.Error(c, http.StatusBadRequest, "requestBodyNotValidJson", msg)
 	}
 
 	u, err := user.Login(requestData.Login, requestData.Password)
 	if err != nil {
 		if err == user.ErrNoSuchUser {
-			response.Message = fmt.Sprintf("%v - %s - handlers.UserLogin - no such user %s", c.RealIP(), response.UUID, requestData.Login)
-			log.Info(response.Message)
-			response.Code = "noSuchUser"
-			response.HttpStatus = http.StatusNotFound
-		} else {
-			response.Message = fmt.Sprintf("%v - %s - handlers.UserLogin - unable to login: %v", c.RealIP(), response.UUID, err)
-			log.Error(response.Message)
-			response.Code = "userLoginFailed"
-			response.HttpStatus = http.StatusInternalServerError
+			msg := fmt.Sprintf("%s - %s - handlers.UserLogin - no such user %s", c.RealIP(), response.UUID, requestData.Login)
+			return response.Error(c, http.StatusNotFound, "noSuchUser", msg)
 		}
-		return c.JSON(response.HttpStatus, response)
+		msg := fmt.Sprintf("%s - %s - handlers.UserLogin - unable to login: %v", c.RealIP(), response.UUID, err)
+		return response.Error(c, http.StatusInternalServerError, "userLoginFailed", msg)
 	}
 
 	// set user in session
 	if err = c.SessionSet("username", u.Username); err != nil {
-		response.Message = fmt.Sprintf("%s - %s - handlers.UserLogin - c.SessionSet(username, %s) failed: %v", c.Request().RemoteAddr, response.UUID, u.Username, err)
-		log.Error(response.Message)
-		response.Code = "sessionSetFailed"
-		response.HttpStatus = http.StatusInternalServerError
-		return c.JSON(response.HttpStatus, response)
+		msg := fmt.Sprintf("%s - %s - handlers.UserLogin - c.SessionSet(username, %s) failed: %v", c.Request().RemoteAddr, response.UUID, u.Username, err)
+		return response.Error(c, http.StatusInternalServerError, "sessionSetFailed", msg)
 	}
 
 	response.Data, err = json.Marshal(u)
 	if err != nil {
-		response.Message = fmt.Sprintf("%v - %s - handlers.UserLogin - json.Marshal(user) failed: %v", c.RealIP(), response.UUID, err)
-		log.Error(response.Message)
-		response.HttpStatus = http.StatusInternalServerError
-		response.Code = "userMarshalFailed"
-		return c.JSON(response.HttpStatus, response)
+		msg := fmt.Sprintf("%s - %s - handlers.UserLogin - json.Marshal(user) failed: %v", c.RealIP(), response.UUID, err)
+		return response.Error(c, http.StatusInternalServerError, "userMarshalFailed", msg)
 	}
-	c.LogInfof("successful login: %s %s", u.Username, u.Email)
-	response.Success = true
-	response.HttpStatus = http.StatusOK
-	return c.JSON(response.HttpStatus, response)
+	c.LogInfof("%s - %s - successful login: %s %s", c.RealIP(), response.UUID, u.Username, u.Email)
+
+	return response.OK(c, http.StatusOK)
 }
 
 // UserMe return user (auth needed)
@@ -144,23 +111,16 @@ func UserMe(ac echo.Context) error {
 
 	user := c.Get("u")
 	if user == nil {
-		response.Message = fmt.Sprintf("%v - %s - handlers.UserMe - c.Get(u) return empty string. it should not happen!", c.RealIP(), response.UUID)
-		log.Error(response.Message)
-		response.HttpStatus = http.StatusUnauthorized
-		response.Code = "userNotInContext"
-		return c.JSON(response.HttpStatus, response)
+		msg := fmt.Sprintf("%s - %s - handlers.UserMe - c.Get(u) return empty string. it should not happen!", c.RealIP(), response.UUID)
+		return response.Error(c, http.StatusUnauthorized, "userNotInContext", msg)
 	}
 	var err error
 	response.Data, err = json.Marshal(user)
 	if err != nil {
-		response.Message = fmt.Sprintf("%v - %s - handlers.UserMe - json.Marshal(user) failed: %v", c.RealIP(), response.UUID, err)
-		log.Error(response.Message)
-		response.HttpStatus = http.StatusInternalServerError
-		response.Code = "userMarshalFailed"
-		return c.JSON(response.HttpStatus, response)
+		msg := fmt.Sprintf("%s - %s - handlers.UserMe - json.Marshal(user) failed: %v", c.RealIP(), response.UUID, err)
+		return response.Error(c, http.StatusInternalServerError, "userMarshalFailed", msg)
 	}
-	response.Success = true
-	return c.JSON(response.HttpStatus, response)
+	return response.OK(c, http.StatusOK)
 }
 
 // a re-utiliser pour le PUT

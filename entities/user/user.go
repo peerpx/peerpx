@@ -149,7 +149,7 @@ func Login(login, password string) (user *User, err error) {
 
 // Create save new user in DB
 func (u *User) Create() error {
-	stmt, err := db.Preparex("INSERT INTO users (username,firstname,lastname,gender,email,address,city,state,zip,country,about,locale,show_nsfw,user_url,admin,avatar_url,password) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+	stmt, err := db.Preparex("INSERT INTO users (username, firstname, lastname, gender, email, address, city, state, zip, country, about, locale, show_nsfw, user_url, admin, avatar_url, password) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
 	if err != nil {
 		return err
 	}

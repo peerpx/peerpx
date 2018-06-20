@@ -65,7 +65,7 @@ func main() {
 	// add CORS
 	if !config.GetBoolDefault("prod", true) {
 		e.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-			AllowOrigins:     []string{"http://localhost:3000/", "*"},
+			AllowOrigins:     []string{"http://localhost:3000", "*"},
 			AllowCredentials: true,
 			AllowHeaders:     []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept, "X-Api-Key"},
 			AllowMethods:     []string{echo.GET, echo.HEAD, echo.PUT, echo.PATCH, echo.POST, echo.DELETE},

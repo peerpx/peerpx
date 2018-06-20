@@ -153,7 +153,6 @@ func (u *User) Create() error {
 	if err != nil {
 		return err
 	}
-
 	res, err := stmt.Exec(u.Username, u.Firstname, u.Lastname, u.Gender, u.Email, u.Address, u.City, u.State, u.Zip, u.Country, u.About, u.Locale, u.ShowNsfw, u.UserURL, u.Admin, u.AvatarURL, u.Password)
 	if err != nil {
 		return err

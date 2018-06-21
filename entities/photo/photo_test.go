@@ -111,7 +111,7 @@ func TestPhoto_Create(t *testing.T) {
 func TestPhoto_Update(t *testing.T) {
 	photo := new(Photo)
 	err := photo.Update()
-	assert.EqualError(t, err, "photo is not recoded in DB yet, i can't update it !")
+	assert.EqualError(t, err, "photo is not recorded in DB yet, i can't update it")
 
 	photo.ID = 1
 	// prepare failed

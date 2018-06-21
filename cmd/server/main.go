@@ -1,23 +1,53 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 	"os"
 	"path"
 	"path/filepath"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/labstack/echo"
 	"github.com/labstack/echo/middleware"
+	_ "github.com/lib/pq"
+	_ "github.com/mattn/go-sqlite3"
+	"github.com/mgutz/ansi"
 	"github.com/peerpx/peerpx/cmd/server/handlers"
 	"github.com/peerpx/peerpx/cmd/server/middlewares"
 	"github.com/peerpx/peerpx/services/config"
 	"github.com/peerpx/peerpx/services/datastore"
 	"github.com/peerpx/peerpx/services/db"
 	"github.com/peerpx/peerpx/services/log"
+)
 
-	_ "github.com/go-sql-driver/mysql"
-	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
+const (
+	banner1 = `
+
+  _____               _____       
+ |  __ \             |  __ \      
+ | |__) |__  ___ _ __| |__) |_  __
+ |  ___/ _ \/ _ \ '__|  ___/\ \/ /
+ | |  |  __/  __/ |  | |     >  < 
+ |_|   \___|\___|_|  |_|    /_/\_\    V 0.0.1
+
+`
+	banner10 = `
+
+ ██████╗ ███████╗███████╗██████╗ ██████╗ ██╗  ██╗
+ ██╔══██╗██╔════╝██╔════╝██╔══██╗██╔══██╗╚██╗██╔╝
+ ██████╔╝█████╗  █████╗  ██████╔╝██████╔╝ ╚███╔╝ 
+ ██╔═══╝ ██╔══╝  ██╔══╝  ██╔══██╗██╔═══╝  ██╔██╗ 
+ ██║     ███████╗███████╗██║  ██║██║     ██╔╝ ██╗
+ ╚═╝     ╚══════╝╚══════╝╚═╝  ╚═╝╚═╝     ╚═╝  ╚═╝
+
+`
+
+	banner2 = ` Decentralized Social Network for Photographers
+ https://peerpx.org 
+
+
+`
 )
 
 func main() {
@@ -58,6 +88,9 @@ func main() {
 
 	// init
 	e := echo.New()
+
+	// banner
+	e.HideBanner = true
 
 	// add custom context
 	e.Use(middlewares.Context)
@@ -142,6 +175,11 @@ func main() {
 	e.Static("/", "./www")
 	//e.File("/", "./www/index.html")
 	e.File("/a/*", "./www/index.html")
+
+	// display banner
+	fmt.Print(ansi.Color(banner10, "cyan+bh"))
+	fmt.Print(ansi.Color(banner2, "magenta+bh"))
+
 	e.Logger.Fatal(e.Start(":8080"))
 
 }

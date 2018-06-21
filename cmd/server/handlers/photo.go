@@ -140,8 +140,8 @@ func PhotoCreate(ac echo.Context) error {
 
 		// remove photo from datastore
 		if !strings.HasPrefix(err.Error(), "UNIQUE") {
-			if err = datastore.Delete(p.Hash); err != nil {
-				c.LogErrorf(" datastore.Delete(%s): %v", p.Hash, err)
+			if err2 := datastore.Delete(p.Hash); err2 != nil {
+				c.LogErrorf(" datastore.Delete(%s): %v", p.Hash, err2)
 			}
 			response.Message = fmt.Sprintf("%s - %s - handlers.PhotoCreate - photo.Create failed: %v", c.RealIP(), response.UUID, err)
 			response.HttpStatus = http.StatusInternalServerError

@@ -6,15 +6,14 @@ import (
 	"errors"
 	"fmt"
 
+	"os"
+
 	"github.com/golang-migrate/migrate"
 	_ "github.com/golang-migrate/migrate/database/mysql"
 	_ "github.com/golang-migrate/migrate/database/postgres"
 	_ "github.com/golang-migrate/migrate/database/sqlite3"
 	_ "github.com/golang-migrate/migrate/source/file"
 	_ "github.com/golang-migrate/migrate/source/github"
-	"github.com/labstack/gommon/log"
-
-	"os"
 
 	"github.com/jmoiron/sqlx"
 	"gopkg.in/DATA-DOG/go-sqlmock.v1"
@@ -48,11 +47,8 @@ func migrateDb() error {
 	var m *migrate.Migrate
 	var err error
 	// check for local file
-	if _, err = os.Stat("./sql2"); os.IsNotExist(err) {
-		// migrate from github
-
+	if _, err = os.Stat("./sql"); os.IsNotExist(err) {
 		m, err = migrate.New("github://toorop:a8ded4740bc467f6203f85f6ffe9c0cdf25515c7@peerpx/peerpx/cmd/server/dist/sql", "sqlite3://peerpx.db")
-		log.Infof("migrate from github %v %v", m, err)
 	} else {
 		// from local file
 		m, err = migrate.New("file://sql", "sqlite3://peerpx.db")

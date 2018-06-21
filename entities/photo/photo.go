@@ -89,11 +89,11 @@ func List(args ...interface{}) (photos []Photo, err error) {
 
 // Create save new photo in DB
 func (p *Photo) Create() error {
-	stmt, err := db.Preparex("INSERT INTO photos (added_at, hash, name, description, camera,lens,focal_length,iso, shutter_speed, aperture, time_viewed, rating, category , location, privacy, latitude, longitude, taken_at, width, height, nsfw, licence_type, url) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+	stmt, err := db.Preparex("INSERT INTO photos (added_at, hash, name, description, camera,lens,focal_length,iso, shutter_speed, aperture, time_viewed, rating, category, location, privacy, latitude, longitude, taken_at, width, height, nsfw, licence_type, url, taken_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
 	if err != nil {
 		return err
 	}
-	res, err := stmt.Exec(time.Now(), p.Hash, p.Name, p.Description, p.Camera, p.Lens, p.FocalLength, p.Iso, p.ShutterSpeed, p.Aperture, p.TimeViewed, p.Rating, p.Category, p.Location, p.Privacy, p.Latitude, p.Longitude, p.TakenAt, p.Width, p.Height, p.Nsfw, p.LicenceType, p.URL)
+	res, err := stmt.Exec(time.Now(), p.Hash, p.Name, p.Description, p.Camera, p.Lens, p.FocalLength, p.Iso, p.ShutterSpeed, p.Aperture, p.TimeViewed, p.Rating, p.Category, p.Location, p.Privacy, p.Latitude, p.Longitude, p.TakenAt, p.Width, p.Height, p.Nsfw, p.LicenceType, p.URL, p.TakenAt)
 	if err != nil {
 		return err
 	}
@@ -110,11 +110,11 @@ func (p *Photo) Update() error {
 	if p.ID == 0 {
 		return errors.New("photo is not recoded in DB yet, i can't update it !")
 	}
-	stmt, err := db.Preparex("UPDATE photos SET added_at=?, hash=?, name=?, description=?, camera=?, lens=?, focal_length=?, iso=?, shutter_speed=?, aperture=?, time_viewed=?, rating=?, category=?, location=?, privacy=?, latitude=?, longitude=?, taken_at=?, width=?, height=?, nsfw=?, licence_type=?, url=? WHERE id=?")
+	stmt, err := db.Preparex("UPDATE photos SET added_at=?, hash=?, name=?, description=?, camera=?, lens=?, focal_length=?, iso=?, shutter_speed=?, aperture=?, time_viewed=?, rating=?, category=?, location=?, privacy=?, latitude=?, longitude=?, taken_at=?, width=?, height=?, nsfw=?, licence_type=?, url=?, taken_at=? WHERE id=?")
 	if err != nil {
 		return err
 	}
-	_, err = stmt.Exec(time.Now(), p.Hash, p.Name, p.Description, p.Camera, p.Lens, p.FocalLength, p.Iso, p.ShutterSpeed, p.Aperture, p.TimeViewed, p.Rating, p.Category, p.Location, p.Privacy, p.Latitude, p.Longitude, p.TakenAt, p.Width, p.Height, p.Nsfw, p.LicenceType, p.URL, p.ID)
+	_, err = stmt.Exec(time.Now(), p.Hash, p.Name, p.Description, p.Camera, p.Lens, p.FocalLength, p.Iso, p.ShutterSpeed, p.Aperture, p.TimeViewed, p.Rating, p.Category, p.Location, p.Privacy, p.Latitude, p.Longitude, p.TakenAt, p.Width, p.Height, p.Nsfw, p.LicenceType, p.URL, p.TakenAt, p.ID)
 	return err
 }
 

@@ -30,23 +30,23 @@ type Photo struct {
 	Description  string    `json:"description"`
 	Camera       string    `json:"camera"`
 	Lens         string    `json:"lens"`
-	FocalLength  uint16    `db:"focal_length",json:"focal_length"`
+	FocalLength  uint16    `db:"focal_length" json:"focal_length"`
 	Iso          uint16    `json:"iso"`
-	ShutterSpeed string    `db:"shutter_speed",json:"shutter_speed"` // or float ? "1/250" vs 0.004
+	ShutterSpeed string    `db:"shutter_speed" json:"shutter_speed"` // or float ? "1/250" vs 0.004
 	Aperture     float32   `json:"aperture"`                         // 5.6, 32, 1.4
-	TimeViewed   uint64    `db:"time_viewed",json:"time_viewed"`
+	TimeViewed   uint64    `db:"time_viewed" json:"time_viewed"`
 	Rating       float32   `json:"rating"`
 	Category     Category  `json:"category"`
 	Location     string    `json:"location"`
 	Privacy      bool      `json:"privacy"` // true if private
 	Latitude     float32   `json:"latitude"`
 	Longitude    float32   `json:"longitude"`
-	AddedAt      time.Time `db:"added_at",json:"added_at"`
-	TakenAt      time.Time `db:"taken_at",json:"taken_at"`
+	AddedAt      time.Time `db:"added_at" json:"added_at"`
+	TakenAt      time.Time `db:"taken_at" json:"taken_at"`
 	Width        uint32    `json:"width"`
 	Height       uint32    `json:"height"`
 	Nsfw         bool      `json:"nsfw"`
-	LicenceType  Licence   `db:"licence_type",json:"licence_type"`
+	LicenceType  Licence   `db:"licence_type" json:"licence_type"`
 	URL          string    `json:"url"`
 	User         user.User `json:"user"`
 	// Todo remove
@@ -108,7 +108,7 @@ func (p *Photo) Create() error {
 // Update update photo in DB
 func (p *Photo) Update() error {
 	if p.ID == 0 {
-		return errors.New("photo is not recoded in DB yet, i can't update it !")
+		return errors.New("photo is not recorded in DB yet, i can't update it")
 	}
 	stmt, err := db.Preparex("UPDATE photos SET added_at=?, hash=?, name=?, description=?, camera=?, lens=?, focal_length=?, iso=?, shutter_speed=?, aperture=?, time_viewed=?, rating=?, category=?, location=?, privacy=?, latitude=?, longitude=?, taken_at=?, width=?, height=?, nsfw=?, licence_type=?, url=?, taken_at=? WHERE id=?")
 	if err != nil {

@@ -1,4 +1,5 @@
 *
+!sql/*.sql
 !peerpx-sample.conf
 !www/.gitkeep
 !db.sql

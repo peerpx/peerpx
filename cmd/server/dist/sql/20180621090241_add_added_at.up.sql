@@ -1,0 +1,1 @@
+ALTER TABLE photos ADD added_at datetime NULL;

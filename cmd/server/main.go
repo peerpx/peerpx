@@ -24,16 +24,6 @@ import (
 const (
 	banner1 = `
 
-  _____               _____       
- |  __ \             |  __ \      
- | |__) |__  ___ _ __| |__) |_  __
- |  ___/ _ \/ _ \ '__|  ___/\ \/ /
- | |  |  __/  __/ |  | |     >  < 
- |_|   \___|\___|_|  |_|    /_/\_\    V 0.0.1
-
-`
-	banner10 = `
-
  ██████╗ ███████╗███████╗██████╗ ██████╗ ██╗  ██╗
  ██╔══██╗██╔════╝██╔════╝██╔══██╗██╔══██╗╚██╗██╔╝
  ██████╔╝█████╗  █████╗  ██████╔╝██████╔╝ ╚███╔╝ 
@@ -177,7 +167,7 @@ func main() {
 	e.File("/a/*", "./www/index.html")
 
 	// display banner
-	fmt.Print(ansi.Color(banner10, "cyan+bh"))
+	fmt.Print(ansi.Color(banner1, "cyan+bh"))
 	fmt.Print(ansi.Color(banner2, "magenta+bh"))
 
 	e.Logger.Fatal(e.Start(":8080"))

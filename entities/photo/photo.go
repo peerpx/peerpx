@@ -89,7 +89,7 @@ func List(args ...interface{}) (photos []Photo, err error) {
 
 // Create save new photo in DB
 func (p *Photo) Create() error {
-	stmt, err := db.Preparex("INSERT INTO photos (added_at, hash, name, description, camera,lens,focal_length,iso, shutter_speed, aperture, time_viewed, rating, category, location, privacy, latitude, longitude, taken_at, width, height, nsfw, licence_type, url, taken_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+	stmt, err := db.Preparex("INSERT INTO photos (added_at, hash, name, description, camera,lens,focal_length,iso, shutter_speed, aperture, time_viewed, rating, category, location, privacy, latitude, longitude, taken_at, width, height, nsfw, licence_type, url, taken_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
 	if err != nil {
 		return err
 	}

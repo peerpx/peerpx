@@ -2,11 +2,19 @@ package db
 
 import (
 	"context"
-	"errors"
-
 	"database/sql"
-
+	"errors"
 	"fmt"
+
+	"github.com/golang-migrate/migrate"
+	_ "github.com/golang-migrate/migrate/database/mysql"
+	_ "github.com/golang-migrate/migrate/database/postgres"
+	_ "github.com/golang-migrate/migrate/database/sqlite3"
+	_ "github.com/golang-migrate/migrate/source/file"
+	_ "github.com/golang-migrate/migrate/source/github"
+	"github.com/labstack/gommon/log"
+
+	"os"
 
 	"github.com/jmoiron/sqlx"
 	"gopkg.in/DATA-DOG/go-sqlmock.v1"
@@ -22,7 +30,42 @@ var Mock sqlmock.Sqlmock
 
 // InitDatabase init database handler
 func InitDatabase(driverName, dataSourceName string) (err error) {
+	// migrate DB
+	if err := migrateDb(); err != nil {
+		return err
+	}
 	db, err = sqlx.Open(driverName, dataSourceName)
+	if err != nil {
+		return err
+	}
+	if err = db.Ping(); err != nil {
+		return err
+	}
+	return nil
+}
+
+func migrateDb() error {
+	var m *migrate.Migrate
+	var err error
+	// check for local file
+	if _, err = os.Stat("./sql2"); os.IsNotExist(err) {
+		// migrate from github
+
+		m, err = migrate.New("github://toorop:a8ded4740bc467f6203f85f6ffe9c0cdf25515c7@peerpx/peerpx/cmd/server/dist/sql", "sqlite3://peerpx.db")
+		log.Infof("migrate from github %v %v", m, err)
+	} else {
+		// from local file
+		m, err = migrate.New("file://sql", "sqlite3://peerpx.db")
+	}
+	if err != nil {
+		return err
+	}
+	defer m.Close()
+	if err = m.Up(); err != nil {
+		if err == migrate.ErrNoChange {
+			return nil
+		}
+	}
 	return err
 }
 

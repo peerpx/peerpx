@@ -1,5 +1,6 @@
 peerpx.conf
 server
+peerpx.db
 
 datastore/*
 !datastore/.gitkeep

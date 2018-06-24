@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/peerpx/peerpx/cmd/server/middlewares"
+	"github.com/peerpx/peerpx/cmd/server/context"
 	"github.com/peerpx/peerpx/services/log"
 )
 
@@ -40,7 +40,7 @@ func ApiResponseFromBody(body *bytes.Buffer) (ApiResponse, error) {
 	return response, err
 }
 
-func (r *ApiResponse) Send(c *middlewares.AppContext, httpStatus int, code, message string) error {
+func (r *ApiResponse) Send(c *context.AppContext, httpStatus int, code, message string) error {
 	r.Timestamp = time.Now()
 	r.HttpStatus = httpStatus
 	r.Message = message
@@ -48,7 +48,7 @@ func (r *ApiResponse) Send(c *middlewares.AppContext, httpStatus int, code, mess
 	return c.JSON(httpStatus, r)
 }
 
-func (r *ApiResponse) Error(c *middlewares.AppContext, httpStatus int, code, message string) error {
+func (r *ApiResponse) Error(c *context.AppContext, httpStatus int, code, message string) error {
 	r.Success = false
 	if message != "" {
 		log.Error(message)
@@ -56,7 +56,7 @@ func (r *ApiResponse) Error(c *middlewares.AppContext, httpStatus int, code, mes
 	return r.Send(c, httpStatus, code, message)
 }
 
-func (r *ApiResponse) OK(c *middlewares.AppContext, httpStatus int) error {
+func (r *ApiResponse) OK(c *context.AppContext, httpStatus int) error {
 	r.Success = true
 	return r.Send(c, httpStatus, "", "")
 }

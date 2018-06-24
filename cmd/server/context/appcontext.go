@@ -1,4 +1,4 @@
-package middlewares
+package context
 
 import (
 	"fmt"
@@ -53,6 +53,16 @@ func (c *AppContext) SessionSet(key string, value interface{}) error {
 	}
 	session.Values[key] = value
 	return session.Save(c.Request(), c.Response().Writer)
+}
+
+// SessionExpire expire the current session
+func (c *AppContext) SessionExpire() error {
+	session, err := c.CookieStore.Get(c.Request(), "ppx")
+	if err != nil {
+		return err
+	}
+	session.Options.MaxAge = -1
+	return session.Save(c.Request(), c.Response())
 }
 
 // Info is the info level logger

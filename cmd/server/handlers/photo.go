@@ -15,6 +15,7 @@ import (
 	"github.com/labstack/echo"
 	"github.com/peerpx/peerpx/cmd/server/context"
 	"github.com/peerpx/peerpx/entities/photo"
+	"github.com/peerpx/peerpx/entities/user"
 	"github.com/peerpx/peerpx/pkg/hasher"
 	"github.com/peerpx/peerpx/pkg/image"
 	"github.com/peerpx/peerpx/services/config"
@@ -125,6 +126,15 @@ func PhotoCreate(ac echo.Context) error {
 	} else {
 		p.URL = fmt.Sprintf("http://%s/api/v1/photo/%s/max", config.GetStringP("hostname"), p.Hash)
 	}
+
+	// get user
+	ui := c.Get("u")
+	if ui == nil {
+		msg := fmt.Sprintf("%s - %s - handlers.PhotoCreate - c.Get(u) return empty string.", c.RealIP(), response.UUID)
+		return response.Error(c, http.StatusUnauthorized, "userNotInContext", msg)
+	}
+	u := ui.(*user.User)
+	p.UserID.Int64 = int64(u.ID)
 
 	// save in datastore
 	if err = datastore.Put(p.Hash, photoBytes); err != nil {

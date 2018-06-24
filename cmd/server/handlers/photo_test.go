@@ -21,6 +21,7 @@ import (
 	"github.com/labstack/echo"
 	"github.com/peerpx/peerpx/cmd/server/context"
 	"github.com/peerpx/peerpx/entities/photo"
+	"github.com/peerpx/peerpx/entities/user"
 	"github.com/peerpx/peerpx/services/config"
 	"github.com/peerpx/peerpx/services/datastore"
 	"github.com/peerpx/peerpx/services/db"
@@ -137,7 +138,7 @@ func TestPhotoCreate(t *testing.T) {
 		}
 	}
 
-	// datastore failed
+	// no user
 	body = new(bytes.Buffer)
 	writer = multipart.NewWriter(body)
 	handleErr(writer.WriteField("properties", properties))
@@ -155,12 +156,40 @@ func TestPhotoCreate(t *testing.T) {
 	c = context.NewMockedContext(e.NewContext(req, rec))
 	datastore.InitMokedDatastore([]byte{}, errors.New("mocked"))
 	if assert.NoError(t, PhotoCreate(c)) {
+		assert.Equal(t, http.StatusUnauthorized, rec.Code)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.False(t, response.Success)
+			assert.Equal(t, "userNotInContext", response.Code)
+		}
+	}
+
+	// datastore failed
+	u := new(user.User)
+	u.ID = 1
+	body = new(bytes.Buffer)
+	writer = multipart.NewWriter(body)
+	handleErr(writer.WriteField("properties", properties))
+	file, err = os.Open("../../../etc/samples/photos/robin.jpg")
+	handleErr(err)
+	defer file.Close()
+	part, err = writer.CreateFormFile("file", "robin.jpg")
+	handleErr(err)
+	_, err = io.Copy(part, file)
+	handleErr(err)
+	handleErr(writer.Close())
+	req = httptest.NewRequest(echo.POST, "/api/v1/photo", body)
+	req.Header.Set("Content-Type", writer.FormDataContentType())
+	rec = httptest.NewRecorder()
+	c = context.NewMockedContext(e.NewContext(req, rec))
+	c.Set("u", *u)
+	datastore.InitMokedDatastore([]byte{}, errors.New("mocked"))
+	if assert.NoError(t, PhotoCreate(c)) {
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
 		response, err := ApiResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.False(t, response.Success)
 			assert.Equal(t, "datastoreFailed", response.Code)
-
 		}
 	}
 
@@ -180,9 +209,8 @@ func TestPhotoCreate(t *testing.T) {
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	rec = httptest.NewRecorder()
 	c = context.NewMockedContext(e.NewContext(req, rec))
-
 	datastore.InitMokedDatastore([]byte{}, nil)
-	//DB
+	c.Set("u", *u)
 	db.Mock.ExpectPrepare("^INSERT INTO photos (.*)").
 		ExpectExec().
 		WillReturnError(errors.New("mocked"))
@@ -213,7 +241,7 @@ func TestPhotoCreate(t *testing.T) {
 	c = context.NewMockedContext(e.NewContext(req, rec))
 
 	datastore.InitMokedDatastore([]byte{}, nil)
-	//DB
+	c.Set("u", *u)
 	db.Mock.ExpectPrepare("^INSERT INTO photos (.*)").
 		ExpectExec().
 		WillReturnError(errors.New("UNIQUE CONSTRAINT blabla"))
@@ -244,7 +272,7 @@ func TestPhotoCreate(t *testing.T) {
 	c = context.NewMockedContext(e.NewContext(req, rec))
 
 	datastore.InitMokedDatastore([]byte{}, nil)
-	//DB
+	c.Set("u", *u)
 	db.Mock.ExpectPrepare("^INSERT INTO photos (.*)").
 		ExpectExec().
 		WillReturnResult(sqlmock.NewResult(1, 1))

@@ -13,6 +13,7 @@ import (
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/mgutz/ansi"
+	"github.com/peerpx/peerpx/cmd/server/context"
 	"github.com/peerpx/peerpx/cmd/server/handlers"
 	"github.com/peerpx/peerpx/cmd/server/middlewares"
 	"github.com/peerpx/peerpx/services/config"
@@ -83,7 +84,7 @@ func main() {
 	e.HideBanner = true
 
 	// add custom context
-	e.Use(middlewares.Context)
+	e.Use(context.Context)
 
 	// add CORS
 	if !config.GetBoolDefault("prod", true) {

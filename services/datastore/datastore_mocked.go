@@ -22,6 +22,11 @@ func (d *Mocked) put(key string, value []byte) error {
 	return d.responseErr
 }
 
+// exists implements datastore.exists
+func (d *Mocked) exists(key string) (bool, error) {
+	return d.responseData[0] == 1, d.responseErr
+}
+
 // Get implements datastore.get
 func (d *Mocked) get(key string) (data []byte, err error) {
 	return d.responseData, d.responseErr

@@ -182,7 +182,7 @@ func TestPhotoCreate(t *testing.T) {
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	rec = httptest.NewRecorder()
 	c = context.NewMockedContext(e.NewContext(req, rec))
-	c.Set("u", *u)
+	c.Set("u", u)
 	datastore.InitMokedDatastore([]byte{}, errors.New("mocked"))
 	if assert.NoError(t, PhotoCreate(c)) {
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
@@ -210,7 +210,7 @@ func TestPhotoCreate(t *testing.T) {
 	rec = httptest.NewRecorder()
 	c = context.NewMockedContext(e.NewContext(req, rec))
 	datastore.InitMokedDatastore([]byte{}, nil)
-	c.Set("u", *u)
+	c.Set("u", u)
 	db.Mock.ExpectPrepare("^INSERT INTO photos (.*)").
 		ExpectExec().
 		WillReturnError(errors.New("mocked"))
@@ -241,7 +241,7 @@ func TestPhotoCreate(t *testing.T) {
 	c = context.NewMockedContext(e.NewContext(req, rec))
 
 	datastore.InitMokedDatastore([]byte{}, nil)
-	c.Set("u", *u)
+	c.Set("u", u)
 	db.Mock.ExpectPrepare("^INSERT INTO photos (.*)").
 		ExpectExec().
 		WillReturnError(errors.New("UNIQUE CONSTRAINT blabla"))
@@ -272,7 +272,7 @@ func TestPhotoCreate(t *testing.T) {
 	c = context.NewMockedContext(e.NewContext(req, rec))
 
 	datastore.InitMokedDatastore([]byte{}, nil)
-	c.Set("u", *u)
+	c.Set("u", u)
 	db.Mock.ExpectPrepare("^INSERT INTO photos (.*)").
 		ExpectExec().
 		WillReturnResult(sqlmock.NewResult(1, 1))
@@ -515,6 +515,9 @@ func TestPhotoDel(t *testing.T) {
 
 func TestPhotoResize(t *testing.T) {
 	e := echo.New()
+	if err := datastore.InitMokedDatastore([]byte{0}, nil); err != nil {
+		panic(err)
+	}
 
 	// height is not Atoiable
 	req := httptest.NewRequest(echo.GET, "/api/v1/photo/hash/height/mocked", nil)
@@ -549,7 +552,7 @@ func TestPhotoResize(t *testing.T) {
 	c.SetParamNames("width")
 	c.SetParamValues("100")
 
-	if err := datastore.InitMokedDatastore(nil, errors.New("notfound")); err != nil {
+	if err := datastore.InitMokedDatastore([]byte{0}, errors.New("notfound")); err != nil {
 		panic(err)
 	}
 	if assert.NoError(t, PhotoResize(c)) {

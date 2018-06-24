@@ -218,6 +218,10 @@ func PhotoGet(c echo.Context) error {
 		log.Errorf("%v - controllers.PhotoGet - unable to get %s from datastore: %v", c.RealIP(), hash, err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
+	// cache
+	c.Response().Header().Set("Etag", hash)
+	c.Response().Header().Set("Cache-Control", "max-age=120")
+
 	return c.Blob(http.StatusOK, "image/jpeg ", photoBytes)
 }
 
@@ -309,6 +313,18 @@ func PhotoDel(ac echo.Context) error {
 
 // PhotoResize returns resized photo
 func PhotoResize(c echo.Context) error {
+	hash := c.Param("id")
+
+	// cache
+	if IfNoneMatch := c.Request().Header.Get("if-none-match"); IfNoneMatch == hash {
+		// check if the photo still exists in datastore
+		exists, _ := datastore.Exists(hash)
+		if exists {
+			c.Response().Header().Set("Etag", hash)
+			c.Response().Header().Set("Cache-Control", "max-age=3600")
+			return c.NoContent(http.StatusNotModified)
+		}
+	}
 
 	var width, height int
 	var err error
@@ -341,7 +357,7 @@ func PhotoResize(c echo.Context) error {
 		return c.NoContent(http.StatusBadRequest)
 	}
 
-	imgBytes, err := datastore.Get(c.Param("id"))
+	imgBytes, err := datastore.Get(hash)
 	if err != nil {
 		log.Errorf("%v - controllers.PhotoResize - datastore.get(%s) failed: %v", c.RealIP(), c.Param("id"), err)
 		return c.NoContent(http.StatusInternalServerError)
@@ -363,6 +379,11 @@ func PhotoResize(c echo.Context) error {
 		log.Errorf("%v - controllers.PhotoResize - unable to img.JPEG(): %v", c.RealIP(), err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
+
+	// cache
+	c.Response().Header().Set("Etag", hash)
+	c.Response().Header().Set("Cache-Control", "max-age=3600")
+
 	return c.Blob(http.StatusOK, "image/jpeg", b)
 }
 

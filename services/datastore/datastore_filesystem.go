@@ -67,6 +67,18 @@ func (d *Fs) get(key string) ([]byte, error) {
 	return data, err
 }
 
+// exists
+func (d *Fs) exists(key string) (bool, error) {
+	_, err := os.Open(filepath.Join(d.getPath(key), key))
+	if err == nil {
+		return true, nil
+	}
+	if os.IsNotExist(err) {
+		return false, nil
+	}
+	return false, err
+}
+
 // delete implements datastore.Delete
 func (d *Fs) delete(key string) error {
 	err := os.Remove(filepath.Join(d.getPath(key), key))

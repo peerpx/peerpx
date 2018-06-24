@@ -18,6 +18,8 @@ var (
 type Provider interface {
 	put(key string, value []byte) error
 
+	exists(key string) (bool, error)
+
 	get(key string) (value []byte, err error)
 
 	delete(key string) error
@@ -29,6 +31,13 @@ func Put(key string, value []byte) error {
 		return ErrNotInitialized
 	}
 	return ds.put(key, value)
+}
+
+func Exists(key string) (bool, error) {
+	if ds == nil {
+		return false, ErrNotInitialized
+	}
+	return ds.exists(key)
 }
 
 // Get return value associated with key

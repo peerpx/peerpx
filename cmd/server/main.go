@@ -116,7 +116,7 @@ func main() {
 	e.POST("/api/v1/user/login", handlers.UserLogin)
 
 	// logout
-	e.POST("/api/v1/user/logout", handlers.Todo)
+	e.POST("/api/v1/user/logout", handlers.UserLogout)
 
 	// check if pseudo is available
 	e.GET("/api/v1/user/pseudo/:pseudo/is-available", handlers.Todo)

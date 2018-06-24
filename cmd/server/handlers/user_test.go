@@ -93,6 +93,7 @@ func TestUserCreate(t *testing.T) {
 
 func TestUserLogin(t *testing.T) {
 	e := echo.New()
+
 	// bad data
 	req := httptest.NewRequest(echo.POST, "/api/v1/user/login", errReader(0))
 	rec := httptest.NewRecorder()
@@ -180,6 +181,18 @@ func TestUserLogin(t *testing.T) {
 				}
 			}
 		}
+	}
+}
+
+func TestUserLogout(t *testing.T) {
+	e := echo.New()
+	req := httptest.NewRequest(echo.POST, "/api/v1/user/logout", nil)
+	rec := httptest.NewRecorder()
+	c := middlewares.NewMockedContext(e.NewContext(req, rec))
+
+	// ok
+	if assert.NoError(t, UserLogout(c)) {
+		assert.Equal(t, http.StatusOK, rec.Code)
 	}
 }
 

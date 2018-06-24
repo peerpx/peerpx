@@ -104,6 +104,25 @@ func UserLogin(ac echo.Context) error {
 	return response.OK(c, http.StatusOK)
 }
 
+// UserLogout log out an user
+func UserLogout(ac echo.Context) error {
+	c := ac.(*middlewares.AppContext)
+	response := NewApiResponse(c.UUID)
+
+	session, err := c.CookieStore.Get(c.Request(), "ppx")
+	c.LogInfof("ERR %v, %v", err, session)
+	if err != nil {
+		msg := fmt.Sprintf("%s - %s - handlers.UserLogout - get session failed : %v", c.RealIP(), response.UUID, err)
+		return response.Error(c, http.StatusInternalServerError, "sessionGetFailed", msg)
+	}
+	session.Options.MaxAge = -1
+	if err := session.Save(c.Request(), c.Response()); err != nil {
+		msg := fmt.Sprintf("%s - %s - handlers.UserLogout - session.Save failed : %v", c.RealIP(), response.UUID, err)
+		return response.Error(c, http.StatusInternalServerError, "sessionSaveFailed", msg)
+	}
+	return response.OK(c, http.StatusOK)
+}
+
 // UserMe return user (auth needed)
 func UserMe(ac echo.Context) error {
 	c := ac.(*middlewares.AppContext)
@@ -111,7 +130,7 @@ func UserMe(ac echo.Context) error {
 
 	user := c.Get("u")
 	if user == nil {
-		msg := fmt.Sprintf("%s - %s - handlers.UserMe - c.Get(u) return empty string. it should not happen!", c.RealIP(), response.UUID)
+		msg := fmt.Sprintf("%s - %s - handlers.UserMe - c.Get(u) return empty string.", c.RealIP(), response.UUID)
 		return response.Error(c, http.StatusUnauthorized, "userNotInContext", msg)
 	}
 	var err error

@@ -10,7 +10,7 @@ import (
 	"fmt"
 
 	"github.com/labstack/echo"
-	"github.com/peerpx/peerpx/cmd/server/middlewares"
+	"github.com/peerpx/peerpx/cmd/server/context"
 	"github.com/peerpx/peerpx/entities/user"
 )
 
@@ -22,7 +22,7 @@ type userCreateRequest struct {
 
 // UserCreate create a new user
 func UserCreate(ac echo.Context) error {
-	c := ac.(*middlewares.AppContext)
+	c := ac.(*context.AppContext)
 	response := NewApiResponse(c.UUID)
 
 	// get body
@@ -62,7 +62,7 @@ type userLoginRequest struct {
 
 // UserLogin used to login
 func UserLogin(ac echo.Context) error {
-	c := ac.(*middlewares.AppContext)
+	c := ac.(*context.AppContext)
 	response := NewApiResponse(c.UUID)
 
 	body, err := ioutil.ReadAll(c.Request().Body)
@@ -106,26 +106,21 @@ func UserLogin(ac echo.Context) error {
 
 // UserLogout log out an user
 func UserLogout(ac echo.Context) error {
-	c := ac.(*middlewares.AppContext)
+	c := ac.(*context.AppContext)
 	response := NewApiResponse(c.UUID)
 
-	session, err := c.CookieStore.Get(c.Request(), "ppx")
-	c.LogInfof("ERR %v, %v", err, session)
-	if err != nil {
-		msg := fmt.Sprintf("%s - %s - handlers.UserLogout - get session failed : %v", c.RealIP(), response.UUID, err)
-		return response.Error(c, http.StatusInternalServerError, "sessionGetFailed", msg)
+	// expire session
+	if err := c.SessionExpire(); err != nil {
+		msg := fmt.Sprintf("%s - %s - handlers.UserLogout - sessionExpire failed : %v", c.RealIP(), response.UUID, err)
+		return response.Error(c, http.StatusInternalServerError, "sessionExpireFailed", msg)
 	}
-	session.Options.MaxAge = -1
-	if err := session.Save(c.Request(), c.Response()); err != nil {
-		msg := fmt.Sprintf("%s - %s - handlers.UserLogout - session.Save failed : %v", c.RealIP(), response.UUID, err)
-		return response.Error(c, http.StatusInternalServerError, "sessionSaveFailed", msg)
-	}
+
 	return response.OK(c, http.StatusOK)
 }
 
 // UserMe return user (auth needed)
 func UserMe(ac echo.Context) error {
-	c := ac.(*middlewares.AppContext)
+	c := ac.(*context.AppContext)
 	response := NewApiResponse(c.UUID)
 
 	user := c.Get("u")

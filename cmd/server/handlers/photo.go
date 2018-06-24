@@ -13,7 +13,7 @@ import (
 	"strings"
 
 	"github.com/labstack/echo"
-	"github.com/peerpx/peerpx/cmd/server/middlewares"
+	"github.com/peerpx/peerpx/cmd/server/context"
 	"github.com/peerpx/peerpx/entities/photo"
 	"github.com/peerpx/peerpx/pkg/hasher"
 	"github.com/peerpx/peerpx/pkg/image"
@@ -29,7 +29,7 @@ import (
 // badFile: bad file
 // duplicate: duplicate
 func PhotoCreate(ac echo.Context) error {
-	c := ac.(*middlewares.AppContext)
+	c := ac.(*context.AppContext)
 	response := NewApiResponse(c.UUID)
 
 	// get multipart
@@ -164,7 +164,7 @@ func PhotoCreate(ac echo.Context) error {
 
 // PhotoGetProperties returns PhotoProperties
 func PhotoGetProperties(ac echo.Context) error {
-	c := ac.(*middlewares.AppContext)
+	c := ac.(*context.AppContext)
 	response := NewApiResponse(c.UUID)
 
 	// get ID -> hash
@@ -213,7 +213,7 @@ func PhotoGet(c echo.Context) error {
 
 // PhotoPut alter photo properties
 func PhotoPut(ac echo.Context) error {
-	c := ac.(*middlewares.AppContext)
+	c := ac.(*context.AppContext)
 	response := NewApiResponse(c.UUID)
 
 	// read body
@@ -282,7 +282,7 @@ func PhotoPut(ac echo.Context) error {
 
 // PhotoDel delete a photo
 func PhotoDel(ac echo.Context) error {
-	c := ac.(*middlewares.AppContext)
+	c := ac.(*context.AppContext)
 	response := NewApiResponse(c.UUID)
 
 	// get hash
@@ -366,7 +366,7 @@ type PhotoSearchResponse struct {
 
 // PhotoSearch return an array of photos regarding the optionnals search params (TMP)
 func PhotoSearch(ac echo.Context) error {
-	c := ac.(*middlewares.AppContext)
+	c := ac.(*context.AppContext)
 	response := NewApiResponse(c.UUID)
 
 	photos, err := photo.List()

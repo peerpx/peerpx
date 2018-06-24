@@ -19,7 +19,7 @@ import (
 	"database/sql"
 
 	"github.com/labstack/echo"
-	"github.com/peerpx/peerpx/cmd/server/middlewares"
+	"github.com/peerpx/peerpx/cmd/server/context"
 	"github.com/peerpx/peerpx/entities/photo"
 	"github.com/peerpx/peerpx/services/config"
 	"github.com/peerpx/peerpx/services/datastore"
@@ -43,7 +43,7 @@ func TestPhotoCreate(t *testing.T) {
 	// request is not multipart
 	req := httptest.NewRequest(echo.POST, "/api/v1/photo", nil)
 	rec := httptest.NewRecorder()
-	c := middlewares.NewMockedContext(e.NewContext(req, rec))
+	c := context.NewMockedContext(e.NewContext(req, rec))
 	if assert.NoError(t, PhotoCreate(c)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
 		response, err := ApiResponseFromBody(rec.Body)
@@ -63,7 +63,7 @@ func TestPhotoCreate(t *testing.T) {
 	req = httptest.NewRequest(echo.POST, "/api/v1/photo", body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	rec = httptest.NewRecorder()
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 	if assert.NoError(t, PhotoCreate(c)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
 		response, err := ApiResponseFromBody(rec.Body)
@@ -83,7 +83,7 @@ func TestPhotoCreate(t *testing.T) {
 	req = httptest.NewRequest(echo.POST, "/api/v1/photo", body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	rec = httptest.NewRecorder()
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 	if assert.NoError(t, PhotoCreate(c)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
 		response, err := ApiResponseFromBody(rec.Body)
@@ -102,7 +102,7 @@ func TestPhotoCreate(t *testing.T) {
 	req = httptest.NewRequest(echo.POST, "/api/v1/photo", body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	rec = httptest.NewRecorder()
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 	if assert.NoError(t, PhotoCreate(c)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
 		response, err := ApiResponseFromBody(rec.Body)
@@ -127,7 +127,7 @@ func TestPhotoCreate(t *testing.T) {
 	req = httptest.NewRequest(echo.POST, "/api/v1/photo", body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	rec = httptest.NewRecorder()
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 	if assert.NoError(t, PhotoCreate(c)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
 		response, err := ApiResponseFromBody(rec.Body)
@@ -152,7 +152,7 @@ func TestPhotoCreate(t *testing.T) {
 	req = httptest.NewRequest(echo.POST, "/api/v1/photo", body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	rec = httptest.NewRecorder()
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 	datastore.InitMokedDatastore([]byte{}, errors.New("mocked"))
 	if assert.NoError(t, PhotoCreate(c)) {
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
@@ -179,7 +179,7 @@ func TestPhotoCreate(t *testing.T) {
 	req = httptest.NewRequest(echo.POST, "/api/v1/photo", body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	rec = httptest.NewRecorder()
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 
 	datastore.InitMokedDatastore([]byte{}, nil)
 	//DB
@@ -210,7 +210,7 @@ func TestPhotoCreate(t *testing.T) {
 	req = httptest.NewRequest(echo.POST, "/api/v1/photo", body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	rec = httptest.NewRecorder()
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 
 	datastore.InitMokedDatastore([]byte{}, nil)
 	//DB
@@ -241,7 +241,7 @@ func TestPhotoCreate(t *testing.T) {
 	req = httptest.NewRequest(echo.POST, "/api/v1/photo", body)
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	rec = httptest.NewRecorder()
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 
 	datastore.InitMokedDatastore([]byte{}, nil)
 	//DB
@@ -270,7 +270,7 @@ func TestPhotoGetProperties(t *testing.T) {
 
 	// db failed
 	rec := httptest.NewRecorder()
-	c := middlewares.NewMockedContext(e.NewContext(req, rec))
+	c := context.NewMockedContext(e.NewContext(req, rec))
 	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(errors.New("mocked"))
 	if assert.NoError(t, PhotoGetProperties(c)) {
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
@@ -283,7 +283,7 @@ func TestPhotoGetProperties(t *testing.T) {
 
 	// not found
 	rec = httptest.NewRecorder()
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(sql.ErrNoRows)
 	if assert.NoError(t, PhotoGetProperties(c)) {
 		assert.Equal(t, http.StatusNotFound, rec.Code)
@@ -296,7 +296,7 @@ func TestPhotoGetProperties(t *testing.T) {
 
 	// Ok
 	rec = httptest.NewRecorder()
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 	row := sqlmock.NewRows([]string{"id", "hash"}).AddRow(1, "mocked")
 	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnRows(row)
 	if assert.NoError(t, PhotoGetProperties(c)) {
@@ -320,7 +320,7 @@ func TestPhotoGet(t *testing.T) {
 	datastore.InitMokedDatastore(nil, datastore.ErrNotFound)
 	req := httptest.NewRequest(echo.GET, "/api/v1/photo/hash/size", nil)
 	rec := httptest.NewRecorder()
-	c := middlewares.NewMockedContext(e.NewContext(req, rec))
+	c := context.NewMockedContext(e.NewContext(req, rec))
 	if assert.NoError(t, PhotoGet(c)) {
 		assert.Equal(t, http.StatusNotFound, rec.Code)
 	}
@@ -328,7 +328,7 @@ func TestPhotoGet(t *testing.T) {
 	datastore.InitMokedDatastore(nil, errors.New("mocked"))
 	req = httptest.NewRequest(echo.GET, "/api/v1/photo/hash/size", nil)
 	rec = httptest.NewRecorder()
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 	if assert.NoError(t, PhotoGet(c)) {
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
 	}
@@ -336,7 +336,7 @@ func TestPhotoGet(t *testing.T) {
 	// ok
 	datastore.InitMokedDatastore([]byte{1, 2, 3}, nil)
 	rec = httptest.NewRecorder()
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 	if assert.NoError(t, PhotoGet(c)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 		assert.Equal(t, []byte{1, 2, 3}, rec.Body.Bytes())
@@ -349,7 +349,7 @@ func TestPhotoPut(t *testing.T) {
 	// body not readable
 	req := httptest.NewRequest(echo.PUT, "/api/v1/photo", errReader(0))
 	rec := httptest.NewRecorder()
-	c := middlewares.NewMockedContext(e.NewContext(req, rec))
+	c := context.NewMockedContext(e.NewContext(req, rec))
 
 	if assert.NoError(t, PhotoPut(c)) {
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
@@ -362,7 +362,7 @@ func TestPhotoPut(t *testing.T) {
 	// bad json
 	req = httptest.NewRequest(echo.PUT, "/api/v1/photo", nil)
 	rec = httptest.NewRecorder()
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 
 	if assert.NoError(t, PhotoPut(c)) {
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
@@ -376,7 +376,7 @@ func TestPhotoPut(t *testing.T) {
 	photoJson := []byte(`{"hash": "bar", "latitude":360}`)
 	rec = httptest.NewRecorder()
 	req = httptest.NewRequest("PUT", "/api/v1/photo", bytes.NewBuffer(photoJson))
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 
 	if assert.NoError(t, PhotoPut(c)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
@@ -390,7 +390,7 @@ func TestPhotoPut(t *testing.T) {
 	photoJson = []byte(`{"hash": "bar"}`)
 	rec = httptest.NewRecorder()
 	req = httptest.NewRequest("PUT", "/api/v1/photo", bytes.NewBuffer(photoJson))
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(sql.ErrNoRows)
 
 	if assert.NoError(t, PhotoPut(c)) {
@@ -406,7 +406,7 @@ func TestPhotoPut(t *testing.T) {
 	photoJson = []byte(`{"hash": "bar"}`)
 	rec = httptest.NewRecorder()
 	req = httptest.NewRequest("PUT", "/api/v1/photo", bytes.NewBuffer(photoJson))
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(errors.New("mocked"))
 
 	if assert.NoError(t, PhotoPut(c)) {
@@ -421,7 +421,7 @@ func TestPhotoPut(t *testing.T) {
 	photoJson = []byte(`{"hash": "bar"}`)
 	rec = httptest.NewRecorder()
 	req = httptest.NewRequest("PUT", "/api/v1/photo", bytes.NewBuffer(photoJson))
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 	db.Mock.ExpectQuery("^SELECT(.*)").
 		WillReturnRows(sqlmock.NewRows([]string{"id", "hash"}).AddRow(1, "mocked"))
 	db.Mock.ExpectPrepare("^UPDATE photos (.*)").
@@ -443,7 +443,7 @@ func TestPhotoDel(t *testing.T) {
 	// Not found
 	req := httptest.NewRequest(echo.DELETE, "/api/v1/photo", nil)
 	rec := httptest.NewRecorder()
-	c := middlewares.NewMockedContext(e.NewContext(req, rec))
+	c := context.NewMockedContext(e.NewContext(req, rec))
 	db.Mock.ExpectPrepare("^DELETE FROM photos (.*)").
 		ExpectExec().WillReturnError(sql.ErrNoRows)
 	if assert.NoError(t, PhotoDel(c)) {
@@ -456,7 +456,7 @@ func TestPhotoDel(t *testing.T) {
 
 	// db error
 	rec = httptest.NewRecorder()
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 	db.Mock.ExpectPrepare("^DELETE FROM photos (.*)").
 		ExpectExec().WillReturnError(errors.New("mocked"))
 	if assert.NoError(t, PhotoDel(c)) {
@@ -469,7 +469,7 @@ func TestPhotoDel(t *testing.T) {
 
 	// ok
 	rec = httptest.NewRecorder()
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 	if err := datastore.InitMokedDatastore(nil, nil); err != nil {
 		panic(err)
 	}
@@ -491,7 +491,7 @@ func TestPhotoResize(t *testing.T) {
 	// height is not Atoiable
 	req := httptest.NewRequest(echo.GET, "/api/v1/photo/hash/height/mocked", nil)
 	rec := httptest.NewRecorder()
-	c := middlewares.NewMockedContext(e.NewContext(req, rec))
+	c := context.NewMockedContext(e.NewContext(req, rec))
 	c.SetPath("/api/v1/photo/hash/height/:height")
 	c.SetParamNames("height")
 	c.SetParamValues("mocked")
@@ -517,7 +517,7 @@ func TestPhotoResize(t *testing.T) {
 
 	// not found in datastore
 	rec = httptest.NewRecorder()
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 	c.SetParamNames("width")
 	c.SetParamValues("100")
 
@@ -536,7 +536,7 @@ func TestPhotoSearch(t *testing.T) {
 	e := echo.New()
 	req := httptest.NewRequest(echo.GET, "/", nil)
 	rec := httptest.NewRecorder()
-	c := middlewares.NewMockedContext(e.NewContext(req, rec))
+	c := context.NewMockedContext(e.NewContext(req, rec))
 
 	// error
 	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(errors.New("mocked"))
@@ -546,7 +546,7 @@ func TestPhotoSearch(t *testing.T) {
 
 	// test "valid" hash
 	rec = httptest.NewRecorder()
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 	rows := sqlmock.NewRows([]string{"id", "hash"}).AddRow(1, "mocked")
 	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnRows(rows)
 	if assert.NoError(t, PhotoSearch(c)) {

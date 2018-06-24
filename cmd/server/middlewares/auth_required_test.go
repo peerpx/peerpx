@@ -11,6 +11,7 @@ import (
 	"errors"
 
 	"github.com/labstack/echo"
+	"github.com/peerpx/peerpx/cmd/server/context"
 	"github.com/peerpx/peerpx/entities/user"
 	"github.com/peerpx/peerpx/services/db"
 	"github.com/stretchr/testify/assert"
@@ -26,14 +27,14 @@ func TestAuthRequired(t *testing.T) {
 	e := echo.New()
 	req := httptest.NewRequest(echo.GET, "/", nil)
 	rec := httptest.NewRecorder()
-	ctx := &AppContext{e.NewContext(req, rec), nil, "mocked"}
+	ctx := &context.AppContext{e.NewContext(req, rec), nil, "mocked"}
 	handler := AuthRequired()(func(c echo.Context) error {
 		return c.String(http.StatusOK, "test")
 	})
 	assert.Panics(t, func() { handler(ctx) })
 
 	// no username in session -> forbidden
-	ctx = NewMockedContext(e.NewContext(req, rec))
+	ctx = context.NewMockedContext(e.NewContext(req, rec))
 	err := handler(ctx)
 	assert.Error(t, err, echo.ErrForbidden)
 
@@ -41,7 +42,9 @@ func TestAuthRequired(t *testing.T) {
 	ctx.SessionSet("username", "toorop")
 	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(sql.ErrNoRows)
 	err = handler(ctx)
-	assert.EqualError(t, err, echo.ErrForbidden.Error())
+	if assert.NoError(t, err) {
+		assert.Equal(t, http.StatusForbidden, rec.Code)
+	}
 
 	// err with DB
 	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(errors.New("mocked"))

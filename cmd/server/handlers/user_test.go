@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/labstack/echo"
-	"github.com/peerpx/peerpx/cmd/server/middlewares"
+	"github.com/peerpx/peerpx/cmd/server/context"
 	"github.com/peerpx/peerpx/entities/user"
 	"github.com/peerpx/peerpx/services/config"
 	"github.com/peerpx/peerpx/services/db"
@@ -26,7 +26,7 @@ func TestUserCreate(t *testing.T) {
 	// read body failed
 	req := httptest.NewRequest(echo.POST, "/api/v1/user", errReader(0))
 	rec := httptest.NewRecorder()
-	c := middlewares.NewMockedContext(e.NewContext(req, rec))
+	c := context.NewMockedContext(e.NewContext(req, rec))
 	if assert.NoError(t, UserCreate(c)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
 		response, err := ApiResponseFromBody(rec.Body)
@@ -40,7 +40,7 @@ func TestUserCreate(t *testing.T) {
 	// bad body (not json)
 	req = httptest.NewRequest(echo.POST, "/api/v1/user", nil)
 	rec = httptest.NewRecorder()
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 	if assert.NoError(t, UserCreate(c)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
 		response, err := ApiResponseFromBody(rec.Body)
@@ -55,7 +55,7 @@ func TestUserCreate(t *testing.T) {
 	data := `{"Email": "barfoo.com", "Username": "john", "Password": "dhfsdjhfjk"}`
 	req = httptest.NewRequest(echo.POST, "/api/v1/user", strings.NewReader(data))
 	rec = httptest.NewRecorder()
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 	if assert.NoError(t, UserCreate(c)) {
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
 		response, err := ApiResponseFromBody(rec.Body)
@@ -76,7 +76,7 @@ func TestUserCreate(t *testing.T) {
 	data = `{"Email": "bar@foo.com", "Username": "john", "Password": "dhfsdjhfjk"}`
 	req = httptest.NewRequest(echo.POST, "/api/v1/user", strings.NewReader(data))
 	rec = httptest.NewRecorder()
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 	if assert.NoError(t, UserCreate(c)) {
 		assert.Equal(t, http.StatusCreated, rec.Code)
 		response, err := ApiResponseFromBody(rec.Body)
@@ -97,7 +97,7 @@ func TestUserLogin(t *testing.T) {
 	// bad data
 	req := httptest.NewRequest(echo.POST, "/api/v1/user/login", errReader(0))
 	rec := httptest.NewRecorder()
-	c := middlewares.NewMockedContext(e.NewContext(req, rec))
+	c := context.NewMockedContext(e.NewContext(req, rec))
 
 	if assert.NoError(t, UserLogin(c)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
@@ -112,7 +112,7 @@ func TestUserLogin(t *testing.T) {
 	// bad body (not json)
 	req = httptest.NewRequest(echo.POST, "/api/v1/user/login", nil)
 	rec = httptest.NewRecorder()
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 	if assert.NoError(t, UserLogin(c)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
 		response, err := ApiResponseFromBody(rec.Body)
@@ -127,7 +127,7 @@ func TestUserLogin(t *testing.T) {
 	body := `{"login":"john", "password":"secret"}`
 	req = httptest.NewRequest(echo.POST, "/api/v1/user/login", strings.NewReader(body))
 	rec = httptest.NewRecorder()
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(sql.ErrNoRows)
 
 	if assert.NoError(t, UserLogin(c)) {
@@ -144,7 +144,7 @@ func TestUserLogin(t *testing.T) {
 	body = `{"login":"john", "password":"secret"}`
 	req = httptest.NewRequest(echo.POST, "/api/v1/user/login", strings.NewReader(body))
 	rec = httptest.NewRecorder()
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(errors.New("mocked"))
 
 	if assert.NoError(t, UserLogin(c)) {
@@ -161,7 +161,7 @@ func TestUserLogin(t *testing.T) {
 	body = `{"login":"john", "password":"secret"}`
 	req = httptest.NewRequest(echo.POST, "/api/v1/user/login", strings.NewReader(body))
 	rec = httptest.NewRecorder()
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 	row := sqlmock.NewRows([]string{"id", "username", "email", "password"}).AddRow(1, "john", "john@doe.com", "$2y$10$vjxV/XuyPaPuINLopc49COmFfxEiVFac4m0L7GgqvJ.KAQcfpmvCa")
 	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnRows(row)
 
@@ -188,7 +188,7 @@ func TestUserLogout(t *testing.T) {
 	e := echo.New()
 	req := httptest.NewRequest(echo.POST, "/api/v1/user/logout", nil)
 	rec := httptest.NewRecorder()
-	c := middlewares.NewMockedContext(e.NewContext(req, rec))
+	c := context.NewMockedContext(e.NewContext(req, rec))
 
 	// ok
 	if assert.NoError(t, UserLogout(c)) {
@@ -200,7 +200,7 @@ func TestUserMe(t *testing.T) {
 	e := echo.New()
 	req := httptest.NewRequest(echo.GET, "/api/v1/user/me", nil)
 	rec := httptest.NewRecorder()
-	c := middlewares.NewMockedContext(e.NewContext(req, rec))
+	c := context.NewMockedContext(e.NewContext(req, rec))
 
 	// user not authenticated (should not happen)
 	if assert.NoError(t, UserMe(c)) {
@@ -214,7 +214,7 @@ func TestUserMe(t *testing.T) {
 
 	// ok
 	rec = httptest.NewRecorder()
-	c = middlewares.NewMockedContext(e.NewContext(req, rec))
+	c = context.NewMockedContext(e.NewContext(req, rec))
 	u := new(user.User)
 	u.ID = 1
 	u.Email = "foo@bar.com"

@@ -12,33 +12,32 @@ import (
 	"github.com/peerpx/peerpx/pkg/naclh"
 	"github.com/peerpx/peerpx/services/config"
 	"github.com/peerpx/peerpx/services/db"
-	"github.com/peerpx/peerpx/services/log"
 	"golang.org/x/crypto/bcrypt"
 	"golang.org/x/crypto/nacl/box"
 )
 
 // User represent an user
 type User struct {
-	ID         uint   `json:"id"`
-	Username   string `json:"username"`
-	Email      string `json:"email"`
-	Password   string `json:"-"`
-	Firstname  string `json:"firstname"`
-	Lastname   string `json:"lastname"`
-	Gender     Gender `json:"gender"`
-	Address    string `json:"address"`
-	City       string `json:"city"`
-	State      string `json:"state"`
-	Zip        string `json:"zip"`
-	Country    string `json:"country"`
-	About      string `json:"about"`
-	Locale     string `json:"locale"` // char(2)
-	ShowNsfw   bool   `db:"show_nsfw" json:"show_nsfw"`
-	UserURL    string `db:"user_url" json:"user_url"`
-	Admin      bool   `json:"admin"`
-	AvatarURL  string `db:"avatar_url" json:"avatar_url"`
-	PublicKey  string `db:"public_key" json:"public_key"`
-	PrivateKey string `db:"private_key" json:"-"`
+	ID         uint           `json:"id"`
+	Username   string         `json:"username"`
+	Email      string         `json:"email"`
+	Password   string         `json:"-"`
+	Firstname  string         `json:"firstname"`
+	Lastname   string         `json:"lastname"`
+	Gender     Gender         `json:"gender"`
+	Address    string         `json:"address"`
+	City       string         `json:"city"`
+	State      string         `json:"state"`
+	Zip        string         `json:"zip"`
+	Country    string         `json:"country"`
+	About      string         `json:"about"`
+	Locale     string         `json:"locale"` // char(2)
+	ShowNsfw   bool           `db:"show_nsfw" json:"show_nsfw"`
+	UserURL    string         `db:"user_url" json:"user_url"`
+	Admin      bool           `json:"admin"`
+	AvatarURL  string         `db:"avatar_url" json:"avatar_url"`
+	PublicKey  sql.NullString `db:"public_key" json:"public_key"`
+	PrivateKey sql.NullString `db:"private_key" json:"-"`
 }
 
 // Gender is the user gender
@@ -96,10 +95,8 @@ func Create(email, username, clearPassword string) (user *User, err error) {
 	if err != nil {
 		return nil, fmt.Errorf("box.GenerateKey failed: %v", err)
 	}
-	log.Infof("Private key %v", privateKey)
-	user.PublicKey = naclh.KeyToString(publicKey)
-	user.PrivateKey = naclh.KeyToString(privateKey)
-	log.Info("base64 %s %s", user.PrivateKey, user.PublicKey)
+	user.PublicKey.String = naclh.KeyToString(publicKey)
+	user.PrivateKey.String = naclh.KeyToString(privateKey)
 
 	// create
 	if err = user.Create(); err != nil {
@@ -170,7 +167,7 @@ func (u *User) Create() error {
 	if err != nil {
 		return err
 	}
-	res, err := stmt.Exec(u.Username, u.Firstname, u.Lastname, u.Gender, u.Email, u.Address, u.City, u.State, u.Zip, u.Country, u.About, u.Locale, u.ShowNsfw, u.UserURL, u.Admin, u.AvatarURL, u.Password, u.PublicKey, u.PrivateKey)
+	res, err := stmt.Exec(u.Username, u.Firstname, u.Lastname, u.Gender, u.Email, u.Address, u.City, u.State, u.Zip, u.Country, u.About, u.Locale, u.ShowNsfw, u.UserURL, u.Admin, u.AvatarURL, u.Password, u.PublicKey.String, u.PrivateKey.String)
 	if err != nil {
 		return err
 	}
@@ -184,11 +181,11 @@ func (u *User) Update() error {
 	if u.ID == 0 {
 		return errors.New("user unknown in database")
 	}
-	stmt, err := db.Preparex("UPDATE users SET username = ?, firstname = ?, lastname = ?, gender = ?, email = ?, address = ?, city = ?, state  = ?, zip = ?, country = ?, about = ?, locale = ?, show_nsfw = ?, user_url = ?, admin = ?, avatar_url = ?, password = ? public_key = ?, private_key = ?WHERE id = ?")
+	stmt, err := db.Preparex("UPDATE users SET username = ?, firstname = ?, lastname = ?, gender = ?, email = ?, address = ?, city = ?, state  = ?, zip = ?, country = ?, about = ?, locale = ?, show_nsfw = ?, user_url = ?, admin = ?, avatar_url = ?, password = ? public_key = ?, private_key = ? WHERE id = ?")
 	if err != nil {
 		return err
 	}
-	res, err := stmt.Exec(u.Username, u.Firstname, u.Lastname, u.Gender, u.Email, u.Address, u.City, u.State, u.Zip, u.Country, u.About, u.Locale, u.ShowNsfw, u.UserURL, u.Admin, u.AvatarURL, u.Password, u.PublicKey, u.PrivateKey, u.ID)
+	res, err := stmt.Exec(u.Username, u.Firstname, u.Lastname, u.Gender, u.Email, u.Address, u.City, u.State, u.Zip, u.Country, u.About, u.Locale, u.ShowNsfw, u.UserURL, u.Admin, u.AvatarURL, u.Password, u.PublicKey.String, u.PrivateKey.String, u.ID)
 	if err != nil {
 		return err
 	}

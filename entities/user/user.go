@@ -1,39 +1,44 @@
 package user
 
 import (
+	"crypto/rand"
+	"database/sql"
 	"errors"
 	"fmt"
 	"net/mail"
 	"strings"
 	"unicode/utf8"
 
-	"database/sql"
-
+	"github.com/peerpx/peerpx/pkg/naclh"
 	"github.com/peerpx/peerpx/services/config"
 	"github.com/peerpx/peerpx/services/db"
+	"github.com/peerpx/peerpx/services/log"
 	"golang.org/x/crypto/bcrypt"
+	"golang.org/x/crypto/nacl/box"
 )
 
 // User represent an user
 type User struct {
-	ID        uint   `json:"id"`
-	Username  string `json:"username"`
-	Email     string `json:"email"`
-	Password  string `json:"-"`
-	Firstname string `json:"firstname"`
-	Lastname  string `json:"lastname"`
-	Gender    Gender `json:"gender"`
-	Address   string `json:"address"`
-	City      string `json:"city"`
-	State     string `json:"state"`
-	Zip       string `json:"zip"`
-	Country   string `json:"country"`
-	About     string `json:"about"`
-	Locale    string `json:"locale"` // char(2)
-	ShowNsfw  bool   `db:"show_nsfw" json:"show_nsfw"`
-	UserURL   string `db:"user_url" json:"user_url"`
-	Admin     bool   `json:"admin"`
-	AvatarURL string `db:"avatar_url" json:"avatar_url"`
+	ID         uint   `json:"id"`
+	Username   string `json:"username"`
+	Email      string `json:"email"`
+	Password   string `json:"-"`
+	Firstname  string `json:"firstname"`
+	Lastname   string `json:"lastname"`
+	Gender     Gender `json:"gender"`
+	Address    string `json:"address"`
+	City       string `json:"city"`
+	State      string `json:"state"`
+	Zip        string `json:"zip"`
+	Country    string `json:"country"`
+	About      string `json:"about"`
+	Locale     string `json:"locale"` // char(2)
+	ShowNsfw   bool   `db:"show_nsfw" json:"show_nsfw"`
+	UserURL    string `db:"user_url" json:"user_url"`
+	Admin      bool   `json:"admin"`
+	AvatarURL  string `db:"avatar_url" json:"avatar_url"`
+	PublicKey  string `db:"public_key" json:"public_key"`
+	PrivateKey string `db:"private_key" json:"-"`
 }
 
 // Gender is the user gender
@@ -86,6 +91,16 @@ func Create(email, username, clearPassword string) (user *User, err error) {
 	}
 	user.Password = string(passwordByte)
 
+	// public & private key
+	publicKey, privateKey, err := box.GenerateKey(rand.Reader)
+	if err != nil {
+		return nil, fmt.Errorf("box.GenerateKey failed: %v", err)
+	}
+	log.Infof("Private key %v", privateKey)
+	user.PublicKey = naclh.KeyToString(publicKey)
+	user.PrivateKey = naclh.KeyToString(privateKey)
+	log.Info("base64 %s %s", user.PrivateKey, user.PublicKey)
+
 	// create
 	if err = user.Create(); err != nil {
 		return nil, fmt.Errorf("unable to record new user in database: %v", err)
@@ -100,7 +115,7 @@ func GetByID(id int) (user *User, err error) {
 	return
 }
 
-// UserGetByUsername return user by its ID
+// GetByUsername return user by its ID
 func GetByUsername(username string) (user *User, err error) {
 	user = new(User)
 	username = strings.TrimSpace(strings.ToLower(username))
@@ -116,7 +131,7 @@ func GetByEmail(email string) (user *User, err error) {
 	return
 }
 
-// UserLogin returns user if exists
+// Login returns user if exists
 func Login(login, password string) (user *User, err error) {
 	isEmail := false
 	login = strings.ToLower(login)
@@ -151,11 +166,11 @@ func Login(login, password string) (user *User, err error) {
 
 // Create save new user in DB
 func (u *User) Create() error {
-	stmt, err := db.Preparex("INSERT INTO users (username, firstname, lastname, gender, email, address, city, state, zip, country, about, locale, show_nsfw, user_url, admin, avatar_url, password) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+	stmt, err := db.Preparex("INSERT INTO users (username, firstname, lastname, gender, email, address, city, state, zip, country, about, locale, show_nsfw, user_url, admin, avatar_url, password, public_key, private_key) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
 	if err != nil {
 		return err
 	}
-	res, err := stmt.Exec(u.Username, u.Firstname, u.Lastname, u.Gender, u.Email, u.Address, u.City, u.State, u.Zip, u.Country, u.About, u.Locale, u.ShowNsfw, u.UserURL, u.Admin, u.AvatarURL, u.Password)
+	res, err := stmt.Exec(u.Username, u.Firstname, u.Lastname, u.Gender, u.Email, u.Address, u.City, u.State, u.Zip, u.Country, u.About, u.Locale, u.ShowNsfw, u.UserURL, u.Admin, u.AvatarURL, u.Password, u.PublicKey, u.PrivateKey)
 	if err != nil {
 		return err
 	}
@@ -169,11 +184,11 @@ func (u *User) Update() error {
 	if u.ID == 0 {
 		return errors.New("user unknown in database")
 	}
-	stmt, err := db.Preparex("UPDATE users SET username = ?, firstname = ?, lastname = ?, gender = ?, email = ?, address = ?, city = ?, state  = ?, zip = ?, country = ?, about = ?, locale = ?, show_nsfw = ?, user_url = ?, admin = ?, avatar_url = ?, password = ? WHERE id = ?")
+	stmt, err := db.Preparex("UPDATE users SET username = ?, firstname = ?, lastname = ?, gender = ?, email = ?, address = ?, city = ?, state  = ?, zip = ?, country = ?, about = ?, locale = ?, show_nsfw = ?, user_url = ?, admin = ?, avatar_url = ?, password = ? public_key = ?, private_key = ?WHERE id = ?")
 	if err != nil {
 		return err
 	}
-	res, err := stmt.Exec(u.Username, u.Firstname, u.Lastname, u.Gender, u.Email, u.Address, u.City, u.State, u.Zip, u.Country, u.About, u.Locale, u.ShowNsfw, u.UserURL, u.Admin, u.AvatarURL, u.Password, u.ID)
+	res, err := stmt.Exec(u.Username, u.Firstname, u.Lastname, u.Gender, u.Email, u.Address, u.City, u.State, u.Zip, u.Country, u.About, u.Locale, u.ShowNsfw, u.UserURL, u.Admin, u.AvatarURL, u.Password, u.PublicKey, u.PrivateKey, u.ID)
 	if err != nil {
 		return err
 	}

@@ -4,8 +4,6 @@ import (
 	"errors"
 	"time"
 
-	"database/sql"
-
 	"github.com/peerpx/peerpx/services/datastore"
 	"github.com/peerpx/peerpx/services/db"
 )
@@ -25,31 +23,31 @@ type Comment struct {
 
 // Photo represents a Photo
 type Photo struct {
-	ID           uint          `json:"id"`
-	UserID       sql.NullInt64 `db:"user_id" json:"user_id"`
-	Hash         string        `json:"hash"`
-	Name         string        `json:"name"`
-	Description  string        `json:"description"`
-	Camera       string        `json:"camera"`
-	Lens         string        `json:"lens"`
-	FocalLength  uint16        `db:"focal_length" json:"focal_length"`
-	Iso          uint16        `json:"iso"`
-	ShutterSpeed string        `db:"shutter_speed" json:"shutter_speed"` // or float ? "1/250" vs 0.004
-	Aperture     float32       `json:"aperture"`                         // 5.6, 32, 1.4
-	TimeViewed   uint64        `db:"time_viewed" json:"time_viewed"`
-	Rating       float32       `json:"rating"`
-	Category     Category      `json:"category"`
-	Location     string        `json:"location"`
-	Privacy      bool          `json:"privacy"` // true if private
-	Latitude     float32       `json:"latitude"`
-	Longitude    float32       `json:"longitude"`
-	AddedAt      time.Time     `db:"added_at" json:"added_at"`
-	TakenAt      time.Time     `db:"taken_at" json:"taken_at"`
-	Width        uint32        `json:"width"`
-	Height       uint32        `json:"height"`
-	Nsfw         bool          `json:"nsfw"`
-	LicenceType  Licence       `db:"licence_type" json:"licence_type"`
-	URL          string        `json:"url"`
+	ID           uint      `json:"id"`
+	UserID       uint      `db:"user_id" json:"user_id"`
+	Hash         string    `json:"hash"`
+	Name         string    `json:"name"`
+	Description  string    `json:"description"`
+	Camera       string    `json:"camera"`
+	Lens         string    `json:"lens"`
+	FocalLength  uint16    `db:"focal_length" json:"focal_length"`
+	Iso          uint16    `json:"iso"`
+	ShutterSpeed string    `db:"shutter_speed" json:"shutter_speed"` // or float ? "1/250" vs 0.004
+	Aperture     float32   `json:"aperture"`                         // 5.6, 32, 1.4
+	TimeViewed   uint64    `db:"time_viewed" json:"time_viewed"`
+	Rating       float32   `json:"rating"`
+	Category     Category  `json:"category"`
+	Location     string    `json:"location"`
+	Privacy      bool      `json:"privacy"` // true if private
+	Latitude     float32   `json:"latitude"`
+	Longitude    float32   `json:"longitude"`
+	AddedAt      time.Time `db:"added_at" json:"added_at"`
+	TakenAt      time.Time `db:"taken_at" json:"taken_at"`
+	Width        uint32    `json:"width"`
+	Height       uint32    `json:"height"`
+	Nsfw         bool      `json:"nsfw"`
+	LicenceType  Licence   `db:"licence_type" json:"licence_type"`
+	URL          string    `json:"url"`
 }
 
 // GetByHash return photo from its hash

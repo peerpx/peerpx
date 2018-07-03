@@ -99,7 +99,12 @@ func main() {
 	// routes
 
 	////
-	// user
+	// Federation
+	//
+	e.GET("/:username/pubkey", handlers.UserGetPublicKey)
+
+	////
+	// API
 
 	// create user
 	e.POST("/api/v1/user", handlers.UserCreate)
@@ -170,6 +175,6 @@ func main() {
 	fmt.Print(ansi.Color(banner1, "cyan+bh"))
 	fmt.Print(ansi.Color(banner2, "magenta+bh"))
 
-	e.Logger.Fatal(e.Start(":8080"))
+	e.Logger.Fatal(e.Start(fmt.Sprintf("%s:%d", config.GetString("server.ip"), config.GetInt("server.port"))))
 
 }

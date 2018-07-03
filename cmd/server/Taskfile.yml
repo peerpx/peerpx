@@ -15,7 +15,10 @@ tasks:
   deploy:
     deps: [build]
     cmds:
-      - rsync -arv dist/server peerpx@peerpx.com:/home/peerpx/
+      - rsync -arv dist/server root@peerpx.com:/var/www/peerpx.social/
+      - rsync -arv dist/www root@peerpx.com:/var/www/peerpx.social/
+      - ssh root@peerpx.com chown -R www-data /var/www/peerpx.social
+      - ssh root@peerpx.com systemctl restart peerpx.social
 
   test:
     cmds:

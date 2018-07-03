@@ -9,10 +9,31 @@ import (
 
 	"fmt"
 
+	"database/sql"
+
 	"github.com/labstack/echo"
 	"github.com/peerpx/peerpx/cmd/server/context"
 	"github.com/peerpx/peerpx/entities/user"
 )
+
+// Federation KissFed
+
+// UserGetPublicKey return user public key
+func UserGetPublicKey(ac echo.Context) error {
+	c := ac.(*context.AppContext)
+	user, err := user.GetByUsername(c.Param("username"))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			c.LogInfof("handlers.UserGetPublicKey - user.GetBuUserName(%s): no such user", c.Param("username"))
+			return c.String(http.StatusNotFound, "no such user")
+		}
+		c.LogErrorf("handlers.UserGetPublicKey - user.GetBuUserName(%s) failed: %v", c.Param("username"), err)
+		return c.NoContent(http.StatusInternalServerError)
+	}
+	return c.String(http.StatusOK, user.PublicKey.String)
+}
+
+// API
 
 type userCreateRequest struct {
 	Email    string

@@ -134,7 +134,7 @@ func PhotoCreate(ac echo.Context) error {
 		return response.Error(c, http.StatusUnauthorized, "userNotInContext", msg)
 	}
 	u := ui.(*user.User)
-	p.UserID.Int64 = int64(u.ID)
+	p.UserID = u.ID
 
 	// save in datastore
 	if err = datastore.Put(p.Hash, photoBytes); err != nil {

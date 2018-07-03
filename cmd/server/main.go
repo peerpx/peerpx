@@ -164,7 +164,6 @@ func main() {
 	/////
 	// Client
 	e.Static("/", "./www")
-	//e.File("/", "./www/index.html")
 	e.File("/a/*", "./www/index.html")
 
 	// display banner

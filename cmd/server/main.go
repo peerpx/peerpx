@@ -101,7 +101,16 @@ func main() {
 	////
 	// Federation
 	//
+
+	////
+	// Webfinger
+	e.GET("/.well-know/webfinger", handlers.Webfinger)
+
+	// Get pub key
 	e.GET("/:username/pubkey", handlers.UserGetPublicKey)
+
+	// Follow request
+	e.POST("/:username/follow", handlers.UserNewFollower)
 
 	////
 	// API

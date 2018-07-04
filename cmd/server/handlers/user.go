@@ -33,6 +33,11 @@ func UserGetPublicKey(ac echo.Context) error {
 	return c.String(http.StatusOK, user.PublicKey.String)
 }
 
+// UserNewFollower follow request
+func UserNewFollower(ac echo.Context) error {
+	return nil
+}
+
 // API
 
 type userCreateRequest struct {

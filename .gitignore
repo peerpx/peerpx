@@ -1,2 +1,2 @@
 .idea
-services/db/peerpx.db
+pkg/kisspub/*

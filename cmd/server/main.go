@@ -104,7 +104,7 @@ func main() {
 
 	////
 	// Webfinger
-	e.GET("/.well-know/webfinger", handlers.Webfinger)
+	e.GET("/.well-known/webfinger", handlers.Webfinger)
 
 	// Get pub key
 	e.GET("/:username/pubkey", handlers.UserGetPublicKey)

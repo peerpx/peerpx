@@ -10,7 +10,9 @@ import (
 
 	"github.com/labstack/echo"
 	"github.com/peerpx/peerpx/entities/user"
+	"github.com/peerpx/peerpx/pkg/cryptobox"
 	"github.com/peerpx/peerpx/services/config"
+	"github.com/peerpx/peerpx/services/log"
 	"github.com/tdewolff/minify"
 	"github.com/tdewolff/minify/json"
 )
@@ -22,7 +24,11 @@ const webFingerResponseTpl = `{
 			"rel": "self",
 			"type": "application/activity+json",
 			"href": "https://%s/%s"
-		}
+		},
+		{
+			"rel": "magic-public-key",
+			"href": "data:application/magic-public-key,%s"
+},
 	]
 }`
 
@@ -56,17 +62,25 @@ func Webfinger(c echo.Context) error {
 	}
 
 	// Get user
-	_, err := user.GetByUsername(usernameDomain[0])
+	u, err := user.GetByUsername(usernameDomain[0])
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return c.String(http.StatusNotFound, "not found ")
 		}
 		return c.String(http.StatusInternalServerError, "i'm sorry dave, something went wrong")
 	}
+
+	// magicKey
+	magicKey, err := cryptobox.RSAGetMagicKey(u.PublicKey.String)
+	if err != nil {
+		return c.String(http.StatusInternalServerError, "get magic key failed")
+	}
+
 	m := minify.New()
 	m.AddFunc("application/json", json.Minify)
-	out, err := m.String("application/json", fmt.Sprintf(webFingerResponseTpl, p[1], config.GetString("hostname"), usernameDomain[0]))
+	out, err := m.String("application/json", fmt.Sprintf(webFingerResponseTpl, p[1], config.GetString("hostname"), usernameDomain[0], magicKey))
 	if err != nil {
+		log.Errorf("Parse failed %v", err)
 		return c.String(http.StatusInternalServerError, "i'm sorry dave, something went wrong")
 	}
 	return c.String(http.StatusOK, out)

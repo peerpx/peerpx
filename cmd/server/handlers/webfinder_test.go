@@ -1,23 +1,29 @@
 package handlers
 
 import (
+	"bytes"
+	"database/sql"
+	"fmt"
+	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"net/http"
-
-	"bytes"
-
-	"database/sql"
-
-	"fmt"
 
 	"github.com/labstack/echo"
 	"github.com/peerpx/peerpx/services/config"
 	"github.com/peerpx/peerpx/services/db"
+	"github.com/peerpx/peerpx/services/log"
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 )
+
+const userPubKey = `-----BEGIN PUBLIC KEY-----
+MIIBCgKCAQEAqVIsY/YRF/+Y3R5vHi8EsNr4fTxFQiYtDCHKj1Jd6eTV+LpxZesn
++jspCUXEID0bowbUXly+QkBsA3ZBFOAE4vmd+XQ3ukt+aHHWJnJVpZjrMScDIYrJ
+RENXAMyW4yZ1tnL66efm5/qsYypqOEICLr27A0+yIwlJ4vjlziy+rEwFihdJKorv
+RBCAiYBUgio7l9Y+Oo0kqd/ZL8DtBHYqsSyTcRcHL/s/O2Ktyxo7cUsvelmTClS2
+zjCJHAVwlnaPzFzVuG9WYTT9j1bU8JInAhxDSOylJKJoCtUrx1vJp+yF4N/JtXGZ
++oP/W8u+1TQl1G54j0MFyalZjtEzEpe+RQIDAQAB
+-----END PUBLIC KEY-----`
 
 func TestWebfinger(t *testing.T) {
 	//init
@@ -87,11 +93,13 @@ func TestWebfinger(t *testing.T) {
 	req = httptest.NewRequest(echo.GET, "/.well-know/webfinger?resource=acct:toorop@peerpx.social", nil)
 	rec = httptest.NewRecorder()
 	c = e.NewContext(req, rec)
-	row := sqlmock.NewRows([]string{"id", "username", "email", "password"}).AddRow(1, "john", "john@doe.com", "$2y$10$vjxV/XuyPaPuINLopc49COmFfxEiVFac4m0L7GgqvJ.KAQcfpmvCa")
+	row := sqlmock.NewRows([]string{"id", "username", "email", "public_key"}).AddRow(1, "john", "john@doe.com", userPubKey)
 	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnRows(row)
 
 	if assert.NoError(t, Webfinger(c)) {
+
 		assert.Equal(t, http.StatusOK, rec.Code)
-		//log.Print(rec.Body.String())
+
+		log.Info(rec.Body.String())
 	}
 }

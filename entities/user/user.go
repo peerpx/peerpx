@@ -1,18 +1,14 @@
 package user
 
 import (
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/x509"
 	"database/sql"
-	"encoding/pem"
 	"errors"
 	"fmt"
 	"net/mail"
 	"strings"
 	"unicode/utf8"
 
-	"bytes"
+	"github.com/peerpx/peerpx/pkg/cryptobox"
 
 	"github.com/peerpx/peerpx/services/config"
 	"github.com/peerpx/peerpx/services/db"
@@ -98,36 +94,15 @@ func Create(email, username, clearPassword string) (user *User, err error) {
 	if err != nil {
 		return nil, fmt.Errorf("box.GenerateKey failed: %v", err)
 	}
-	user.PublicKey.String = naclh.KeyToString(publicKey)
-	user.PrivateKey.String = naclh.KeyToString(privateKey)
+	user.PublicKey.String = cryptobox.KeyToString(publicKey)
+	user.PrivateKey.String = cryptobox.KeyToString(privateKey)
 	*/
 
-	// RSA
-	RSAPrivateKey, err := rsa.GenerateKey(rand.Reader, 2048)
+	// RSA keys
+	user.PrivateKey.String, user.PublicKey.String, err = cryptobox.RSAGenerateKeysAsPemStr()
 	if err != nil {
-		return nil, fmt.Errorf("rsa.GenerateKey failed: %v", err)
+		return nil, fmt.Errorf("cryptobox.RSAGenerateKeysAsPemStr() faild: %v", err)
 	}
-	RSAPrivateKeyPEM := &pem.Block{
-		Type:  "PRIVATE KEY",
-		Bytes: x509.MarshalPKCS1PrivateKey(RSAPrivateKey),
-	}
-
-	RSAPublicKeyPEM := &pem.Block{
-		Type:  "PUBLIC KEY",
-		Bytes: x509.MarshalPKCS1PublicKey(&RSAPrivateKey.PublicKey),
-	}
-
-	b := bytes.NewBuffer(nil)
-	if err = pem.Encode(b, RSAPrivateKeyPEM); err != nil {
-		return nil, fmt.Errorf("pem.Encode(privateKey) failed: %v", err)
-	}
-	user.PrivateKey.String = b.String()
-	b.Reset()
-	if err = pem.Encode(b, RSAPublicKeyPEM); err != nil {
-
-	}
-	user.PublicKey.String = b.String()
-
 	// create
 	if err = user.Create(); err != nil {
 		return nil, fmt.Errorf("unable to record new user in database: %v", err)

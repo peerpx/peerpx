@@ -11,10 +11,79 @@ import (
 
 	"database/sql"
 
+	"strings"
+
+	"text/template"
+
+	"bytes"
+
 	"github.com/labstack/echo"
 	"github.com/peerpx/peerpx/cmd/server/context"
 	"github.com/peerpx/peerpx/entities/user"
+	"github.com/peerpx/peerpx/services/config"
 )
+
+// UserProfile dislay user profile
+// Return
+// - defaut -> html
+// - if header Accept: application/activitypub
+// or user.activitypub -> activitypub
+func UserProfile(ac echo.Context) error {
+	c := ac.(*context.AppContext)
+	// response content type
+	renderJSON := false
+
+	// json ?
+	if c.Request().Header.Get("accept") == "application/json" || strings.HasSuffix(c.Request().RequestURI, ".json") {
+		renderJSON = true
+	}
+	if !renderJSON {
+		return c.String(200, "render as HTML is not implementer yet")
+	}
+
+	// Get user
+	// remove .json
+	userName := strings.ToLower(c.Param("username"))
+	if strings.HasSuffix(userName, ".json") {
+		userName = userName[:len(userName)-5]
+	}
+	u, err := user.GetByUsername(userName)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return c.NoContent(http.StatusNotFound)
+		}
+		c.LogErrorf("handlers.UserProfile - user.GetByUsername(%s) failed: %v", userName, err)
+		c.String(http.StatusInternalServerError, "internal server error")
+	}
+
+	// Load template
+	tpl, err := template.New("up").Parse(tplBox.String("activitypub/user_profile.tpl"))
+	if err != nil {
+		c.LogErrorf("handlers.UserProfile - template new failed: %v", err)
+		c.String(http.StatusInternalServerError, "internal server error")
+	}
+
+	// /\n -> \n
+	PubKey := bytes.Replace([]byte(u.PublicKey.String), []byte{10}, []byte{92, 110}, -1)
+
+	tplData := struct {
+		BaseURL  string
+		UserName string
+		Summary  string
+		PubKey   string
+	}{
+		BaseURL:  config.GetString("hostname"),
+		UserName: u.Username,
+		Summary:  "",
+		PubKey:   string(PubKey),
+	}
+	out := bytes.NewBuffer(nil)
+	if err = tpl.Execute(out, tplData); err != nil {
+		c.LogErrorf("handlers.UserProfile - template execute failed: %v", err)
+		c.String(http.StatusInternalServerError, "internal server error")
+	}
+	return c.Blob(200, "application/activity+json; charset=utf-8", out.Bytes())
+}
 
 // Federation KissFed
 
@@ -38,6 +107,7 @@ func UserNewFollower(ac echo.Context) error {
 	return nil
 }
 
+/////////////////////////////////////////////////////
 // API
 
 type userCreateRequest struct {
@@ -73,7 +143,7 @@ func UserCreate(ac echo.Context) error {
 
 	response.Data, err = json.Marshal(user)
 	if err != nil {
-		msg := fmt.Sprintf("%s - %s - handlers.UserAdd - json.Marshal(user) failed: %v", c.RealIP(), response.UUID, err)
+		msg := fmt.Sprintf("%s - %s - handlers.UserAdd - activitypub.Marshal(user) failed: %v", c.RealIP(), response.UUID, err)
 		return response.Error(c, http.StatusInternalServerError, "userMarshalFailed", msg)
 	}
 
@@ -82,8 +152,8 @@ func UserCreate(ac echo.Context) error {
 }
 
 type userLoginRequest struct {
-	Login    string `json:"login"`
-	Password string `json:"password"`
+	Login    string `activitypub:"login"`
+	Password string `activitypub:"password"`
 }
 
 // UserLogin used to login
@@ -122,7 +192,7 @@ func UserLogin(ac echo.Context) error {
 
 	response.Data, err = json.Marshal(u)
 	if err != nil {
-		msg := fmt.Sprintf("%s - %s - handlers.UserLogin - json.Marshal(user) failed: %v", c.RealIP(), response.UUID, err)
+		msg := fmt.Sprintf("%s - %s - handlers.UserLogin - activitypub.Marshal(user) failed: %v", c.RealIP(), response.UUID, err)
 		return response.Error(c, http.StatusInternalServerError, "userMarshalFailed", msg)
 	}
 	c.LogInfof("%s - %s - successful login: %s %s", c.RealIP(), response.UUID, u.Username, u.Email)
@@ -157,7 +227,7 @@ func UserMe(ac echo.Context) error {
 	var err error
 	response.Data, err = json.Marshal(user)
 	if err != nil {
-		msg := fmt.Sprintf("%s - %s - handlers.UserMe - json.Marshal(user) failed: %v", c.RealIP(), response.UUID, err)
+		msg := fmt.Sprintf("%s - %s - handlers.UserMe - activitypub.Marshal(user) failed: %v", c.RealIP(), response.UUID, err)
 		return response.Error(c, http.StatusInternalServerError, "userMarshalFailed", msg)
 	}
 	return response.OK(c, http.StatusOK)
@@ -201,11 +271,11 @@ func User(c echo.Context) error {
 	}
 	defer c.Request().Body.Close()
 
-	// decode json request in UserPostRequest struct
+	// decode activitypub request in UserPostRequest struct
 	var userpost UserPostRequest
-	err = json.Unmarshal(userDatas, &userpost)
+	err = activitypub.Unmarshal(userDatas, &userpost)
 	if err != nil {
-		log.Infof("%v - handlers.UserPost - unable to unmarshall json from body: %v", c.RealIP(), err)
+		log.Infof("%v - handlers.UserPost - unable to unmarshall activitypub from body: %v", c.RealIP(), err)
 		return c.NoContent(http.StatusInternalServerError)
 	}
 

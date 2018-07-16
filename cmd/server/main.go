@@ -96,15 +96,21 @@ func main() {
 		}))
 	}
 
-	// routes
-
-	////
-	// Federation
-	//
+	/////////////////////////////////////////////////////////////////////
+	// Routes
 
 	////
 	// Webfinger
 	e.GET("/.well-known/webfinger", handlers.Webfinger)
+
+	////
+	// ActivityPub
+
+	////
+	// User
+
+	// Profile
+	e.GET("/users/:username", handlers.UserProfile)
 
 	// Get pub key
 	e.GET("/:username/pubkey", handlers.UserGetPublicKey)

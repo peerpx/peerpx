@@ -84,7 +84,7 @@ func TestWebfinger(t *testing.T) {
 	req = httptest.NewRequest(echo.GET, "/.well-know/webfinger?resource=acct:toorop@peerpx.social", nil)
 	rec = httptest.NewRecorder()
 	c = e.NewContext(req, rec)
-	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(fmt.Errorf("boooooo!"))
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(fmt.Errorf("boooooo"))
 	if assert.NoError(t, Webfinger(c)) {
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
 	}

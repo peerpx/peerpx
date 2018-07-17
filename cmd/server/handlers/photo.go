@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	// import image
 	_ "image/jpeg"
 	_ "image/png"
 	"io/ioutil"

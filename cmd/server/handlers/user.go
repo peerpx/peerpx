@@ -57,7 +57,12 @@ func UserProfile(ac echo.Context) error {
 	}
 
 	// Load template
-	tpl, err := template.New("up").Parse(tplBox.String("activitypub/user_profile.tpl"))
+	t, err := tplBox.MustString("activitypub/user_profile.tpl")
+	if err != nil {
+		c.LogErrorf("handlers.UserProfile -tplBox.MustString(activitypub/user_profile.tpl) failed: %v", err)
+		c.String(http.StatusInternalServerError, "internal server error")
+	}
+	tpl, err := template.New("up").Parse(t)
 	if err != nil {
 		c.LogErrorf("handlers.UserProfile - template new failed: %v", err)
 		c.String(http.StatusInternalServerError, "internal server error")

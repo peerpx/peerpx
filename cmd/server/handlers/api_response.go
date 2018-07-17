@@ -32,7 +32,7 @@ func NewApiResponse(uuid string) *ApiResponse {
 	}
 }
 
-// GetApiResponse unmarshall api response from http response body
+// ApiResponseFromBody unmarshall api response from http response body
 // mainly used for tests
 func ApiResponseFromBody(body *bytes.Buffer) (ApiResponse, error) {
 	var response ApiResponse
@@ -40,6 +40,7 @@ func ApiResponseFromBody(body *bytes.Buffer) (ApiResponse, error) {
 	return response, err
 }
 
+// Send send a reply
 func (r *ApiResponse) Send(c *context.AppContext, httpStatus int, code, message string) error {
 	r.Timestamp = time.Now()
 	r.HttpStatus = httpStatus
@@ -48,6 +49,7 @@ func (r *ApiResponse) Send(c *context.AppContext, httpStatus int, code, message 
 	return c.JSON(httpStatus, r)
 }
 
+// Error send an error reply
 func (r *ApiResponse) Error(c *context.AppContext, httpStatus int, code, message string) error {
 	r.Success = false
 	if message != "" {
@@ -56,6 +58,7 @@ func (r *ApiResponse) Error(c *context.AppContext, httpStatus int, code, message
 	return r.Send(c, httpStatus, code, message)
 }
 
+// OK send an OK response
 func (r *ApiResponse) OK(c *context.AppContext, httpStatus int) error {
 	r.Success = true
 	return r.Send(c, httpStatus, "", "")

@@ -4,7 +4,7 @@ version: '2'
 tasks:
   build:
     cmds:
-      - go build -o dist/server
+      - packr build -o dist/server
 
   run:
     deps: [build]

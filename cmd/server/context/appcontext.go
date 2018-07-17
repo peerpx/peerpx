@@ -2,6 +2,7 @@ package context
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/gorilla/sessions"
 	"github.com/labstack/echo"
@@ -65,26 +66,48 @@ func (c *AppContext) SessionExpire() error {
 	return session.Save(c.Request(), c.Response())
 }
 
-// Info is the info level logger
+// GetWantedContentType returns wanted content type
+// Warning file extension >> header accept (yes i know...)
+// Warning supported CT html, json, atom
+func (c *AppContext) GetWantedContentType() string {
+	uri := strings.ToLower(c.Request().RequestURI)
+	if strings.HasSuffix(uri, ".json") {
+		return "json"
+	} else if strings.HasSuffix(uri, ".atom") {
+		return "atom"
+	} else {
+		accept := strings.ToLower(c.Request().Header.Get("accept"))
+		if strings.HasPrefix(accept, "application/json") {
+			return "json"
+		}
+		if strings.HasPrefix(accept, "application/atom+xml") {
+			return "atom"
+		}
+	}
+	return ""
+}
+
+// LogInfo is the info level logger
 func (c *AppContext) LogInfo(v ...interface{}) {
 	log.Info(fmt.Sprintf("%s - %s - ", c.RealIP(), c.UUID), fmt.Sprintln(v...))
 }
 
-// Infof is the info level logger
+// LogInfof is the info level logger
 func (c *AppContext) LogInfof(format string, v ...interface{}) {
 	log.Infof(fmt.Sprintf("%s - %s - %s ", c.RealIP(), c.UUID, format), v...)
 }
 
-// Error is the error level logger
+// LogError is the error level logger
 func (c *AppContext) LogError(v ...interface{}) {
 	log.Error(fmt.Sprintf("%s - %s - ", c.RealIP(), c.UUID), fmt.Sprintln(v...))
 }
 
-// Errofis the info level logger
+// LogErrorf is the info level logger
 func (c *AppContext) LogErrorf(format string, v ...interface{}) {
 	log.Errorf(fmt.Sprintf("%s - %s - %s ", c.RealIP(), c.UUID, format), v...)
 }
 
+// Context app context
 func Context(h echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		cc := &AppContext{

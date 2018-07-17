@@ -1,39 +1,26 @@
 package handlers
 
 import (
+	"bytes"
+	"database/sql"
 	"fmt"
 	"net/http"
 	"net/mail"
 	"strings"
-
-	"database/sql"
+	"text/template"
 
 	"github.com/labstack/echo"
+	"github.com/peerpx/peerpx/cmd/server/context"
 	"github.com/peerpx/peerpx/entities/user"
 	"github.com/peerpx/peerpx/pkg/cryptobox"
 	"github.com/peerpx/peerpx/services/config"
-	"github.com/peerpx/peerpx/services/log"
 	"github.com/tdewolff/minify"
 	"github.com/tdewolff/minify/json"
 )
 
-const webFingerResponseTpl = `{
-	"subject": "acct:%s",
-	"links": [
-		{
-			"rel": "self",
-			"type": "application/activity+json",
-			"href": "https://%s/%s"
-		},
-		{
-			"rel": "magic-public-key",
-			"href": "data:application/magic-public-key,%s"
-},
-	]
-}`
-
-// Webfinger basic implementation (POC)
-func Webfinger(c echo.Context) error {
+// WebfingerAcct basic implementation
+func WebfingerAcct(ac echo.Context) error {
+	c := ac.(*context.AppContext)
 	// get resource
 	resource := c.QueryParam("resource")
 	if resource == "" {
@@ -76,12 +63,39 @@ func Webfinger(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, "get magic key failed")
 	}
 
+	// generate response body
+	t, err := tplBox.MustString("webfinger/acct.json")
+	if err != nil {
+		c.LogErrorf("handlers.WebfingerAcct - tplBox.MustString(webfinger/acct.json) failed: %v", err)
+		return c.String(http.StatusInternalServerError, "internal server error")
+	}
+	tpl, err := template.New("acct").Parse(t)
+	if err != nil {
+		c.LogErrorf("handlers.WebfingerAcct - template new failed: %v", err)
+		return c.String(http.StatusInternalServerError, "internal server error")
+	}
+
+	tplData := struct {
+		HostName string
+		UserName string
+		MagicKey string
+	}{
+		HostName: config.GetString("hostname"),
+		UserName: u.Username,
+		MagicKey: magicKey,
+	}
+	b := bytes.NewBuffer(nil)
+	if err = tpl.Execute(b, tplData); err != nil {
+		c.LogErrorf("handlers.WebfingerAcct - template execute failed: %v", err)
+		return c.String(http.StatusInternalServerError, "internal server error")
+	}
+
 	m := minify.New()
 	m.AddFunc("application/json", json.Minify)
-	out, err := m.String("application/json", fmt.Sprintf(webFingerResponseTpl, p[1], config.GetString("hostname"), usernameDomain[0], magicKey))
+	out, err := m.Bytes("application/json", b.Bytes())
 	if err != nil {
-		log.Errorf("Parse failed %v", err)
+		// TODO log err
 		return c.String(http.StatusInternalServerError, "i'm sorry dave, something went wrong")
 	}
-	return c.String(http.StatusOK, out)
+	return c.Blob(200, "application/jrd+json; charset=utf-8", out)
 }

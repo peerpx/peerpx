@@ -101,7 +101,7 @@ func main() {
 
 	////
 	// Webfinger
-	e.GET("/.well-known/webfinger", handlers.Webfinger)
+	e.GET("/.well-known/webfinger", handlers.WebfingerAcct)
 
 	////
 	// ActivityPub

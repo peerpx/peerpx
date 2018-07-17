@@ -1,0 +1,36 @@
+{
+    "subject": "acct:{{.UserName}}@{{.HostName}}",
+    "aliases": [
+      "https://{{.HostName}}/@{{.UserName}}",
+      "https://{{.HostName}}/users/{{.UserName}}"
+    ],
+    "links": [
+      {
+        "rel": "http://webfinger.net/rel/profile-page",
+        "type": "text/html",
+        "href": "https://{{.HostName}}/@{{.UserName}}"
+      },
+      {
+        "rel": "http://schemas.google.com/g/2010#updates-from",
+        "type": "application/atom+xml",
+        "href": "https://{{.HostName}}/users/{{.UserName}}.atom"
+      },
+      {
+        "rel": "self",
+        "type": "application/activity+json",
+        "href": "https://{{.HostName}}/users/{{.UserName}}"
+      },
+      {
+        "rel": "salmon",
+        "href": "https://{{.HostName}}/api/salmon/312686"
+      },
+      {
+        "rel": "magic-public-key",
+        "href": "data:application/magic-public-key,RSA.ws5OyIB6RD00URlbLE4GI7f6CxgdTa5jegLmP-4yKfIfgRXUYkfG1bh7OcrgwAjVKZO72eyoFV4yE5hDdqxgMMWuCEkS9xPJlkvDL74ujC6wKpZNjqU6cn88spWZWb-x9fcZac9fD9wz9C67AlruFGu4Fq-_YoL3Eg0K_XDNtFG6zOsE84fBEhTXfK07gsGaA7uRreU-G8vaTULUhZuO_ogFSDaQtldm3SeMvTnrcNQlogleHIHc3rO3AV2Ji2HHXLHLgr6clH6xfpZHkhmyp0kYkyVRhz57-yw6F8x9t6-LCf9Mw4y7nLt7lhwojQbVrpcFBSPZFSOsLwQD4v5zfw==.AQAB"
+      },
+      {
+        "rel": "http://ostatus.org/schema/1.0/subscribe",
+        "template": "https://{{.HostName}}/authorize_follow?acct={uri}"
+      }
+    ]
+  }

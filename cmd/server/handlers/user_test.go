@@ -18,6 +18,18 @@ import (
 	"gopkg.in/DATA-DOG/go-sqlmock.v1"
 )
 
+func TestUserProfile(t *testing.T) {
+	e := echo.New()
+	req := httptest.NewRequest(echo.POST, "/users/toorop.json", nil)
+	rec := httptest.NewRecorder()
+	c := context.NewMockedContext(e.NewContext(req, rec))
+	row := sqlmock.NewRows([]string{"id", "username", "email", "password"}).AddRow(1, "john", "john@doe.com", "$2y$10$vjxV/XuyPaPuINLopc49COmFfxEiVFac4m0L7GgqvJ.KAQcfpmvCa")
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnRows(row)
+	if assert.NoError(t, UserProfile(c)) {
+		assert.Equal(t, http.StatusOK, rec.Code)
+	}
+}
+
 func TestUserCreate(t *testing.T) {
 	e := echo.New()
 	config.Set("usernameMaxLength", "5")

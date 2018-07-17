@@ -1,21 +1,14 @@
 package handlers
 
 import (
-	"net/http"
-
-	"io/ioutil"
-
-	"encoding/json"
-
-	"fmt"
-
-	"database/sql"
-
-	"strings"
-
-	"text/template"
-
 	"bytes"
+	"database/sql"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"net/http"
+	"strings"
+	"text/template"
 
 	"github.com/labstack/echo"
 	"github.com/peerpx/peerpx/cmd/server/context"
@@ -30,64 +23,62 @@ import (
 // or user.activitypub -> activitypub
 func UserProfile(ac echo.Context) error {
 	c := ac.(*context.AppContext)
-	// response content type
-	renderJSON := false
 
-	// json ?
-	if c.Request().Header.Get("accept") == "application/json" || strings.HasSuffix(c.Request().RequestURI, ".json") {
-		renderJSON = true
-	}
-	if !renderJSON {
-		return c.String(200, "render as HTML is not implementer yet")
-	}
-
-	// Get user
-	// remove .json
-	userName := strings.ToLower(c.Param("username"))
-	if strings.HasSuffix(userName, ".json") {
-		userName = userName[:len(userName)-5]
-	}
-	u, err := user.GetByUsername(userName)
-	if err != nil {
-		if err == sql.ErrNoRows {
-			return c.NoContent(http.StatusNotFound)
+	switch c.GetWantedContentType() {
+	case "json":
+		// Get user
+		// remove .json
+		userName := strings.ToLower(c.Param("username"))
+		if strings.HasSuffix(userName, ".json") {
+			userName = userName[:len(userName)-5]
 		}
-		c.LogErrorf("handlers.UserProfile - user.GetByUsername(%s) failed: %v", userName, err)
-		c.String(http.StatusInternalServerError, "internal server error")
-	}
+		u, err := user.GetByUsername(userName)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				return c.NoContent(http.StatusNotFound)
+			}
+			c.LogErrorf("handlers.UserProfile - user.GetByUsername(%s) failed: %v", userName, err)
+			return c.String(http.StatusInternalServerError, "internal server error")
+		}
 
-	// Load template
-	t, err := tplBox.MustString("activitypub/user_profile.tpl")
-	if err != nil {
-		c.LogErrorf("handlers.UserProfile -tplBox.MustString(activitypub/user_profile.tpl) failed: %v", err)
-		c.String(http.StatusInternalServerError, "internal server error")
-	}
-	tpl, err := template.New("up").Parse(t)
-	if err != nil {
-		c.LogErrorf("handlers.UserProfile - template new failed: %v", err)
-		c.String(http.StatusInternalServerError, "internal server error")
-	}
+		// Load template
+		t, err := tplBox.MustString("activitypub/user_profile.tpl")
+		if err != nil {
+			c.LogErrorf("handlers.UserProfile -tplBox.MustString(activitypub/user_profile.tpl) failed: %v", err)
+			return c.String(http.StatusInternalServerError, "internal server error")
+		}
+		tpl, err := template.New("up").Parse(t)
+		if err != nil {
+			c.LogErrorf("handlers.UserProfile - template new failed: %v", err)
+			return c.String(http.StatusInternalServerError, "internal server error")
+		}
 
-	// /\n -> \n
-	PubKey := bytes.Replace([]byte(u.PublicKey.String), []byte{10}, []byte{92, 110}, -1)
+		// /\n -> \n
+		PubKey := bytes.Replace([]byte(u.PublicKey.String), []byte{10}, []byte{92, 110}, -1)
 
-	tplData := struct {
-		BaseURL  string
-		UserName string
-		Summary  string
-		PubKey   string
-	}{
-		BaseURL:  config.GetString("hostname"),
-		UserName: u.Username,
-		Summary:  "",
-		PubKey:   string(PubKey),
+		tplData := struct {
+			BaseURL  string
+			UserName string
+			Summary  string
+			PubKey   string
+		}{
+			BaseURL:  config.GetString("hostname"),
+			UserName: u.Username,
+			Summary:  "",
+			PubKey:   string(PubKey),
+		}
+		out := bytes.NewBuffer(nil)
+		if err = tpl.Execute(out, tplData); err != nil {
+			c.LogErrorf("handlers.UserProfile - template execute failed: %v", err)
+			return c.String(http.StatusInternalServerError, "internal server error")
+		}
+		return c.Blob(200, "application/activity+json; charset=utf-8", out.Bytes())
+
+	case "atom":
+		return c.String(http.StatusNotFound, "atom is not implemented yet")
+	default:
+		return c.String(http.StatusNotFound, "html is not implemented yet")
 	}
-	out := bytes.NewBuffer(nil)
-	if err = tpl.Execute(out, tplData); err != nil {
-		c.LogErrorf("handlers.UserProfile - template execute failed: %v", err)
-		c.String(http.StatusInternalServerError, "internal server error")
-	}
-	return c.Blob(200, "application/activity+json; charset=utf-8", out.Bytes())
 }
 
 // Federation KissFed

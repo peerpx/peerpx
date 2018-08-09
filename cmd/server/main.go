@@ -68,9 +68,6 @@ func main() {
 		os.Exit(1)
 	}
 
-	// Migrate the schema
-	// TODO check schema
-
 	// init datastore
 	if err = datastore.InitFilesystemDatastore(config.GetStringDefault(("datastore.path"), path.Join(workingDir, "datastore"))); err != nil {
 		log.Errorf("datastore initialization  PLOPfailed: %v", err)

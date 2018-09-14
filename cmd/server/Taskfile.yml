@@ -5,7 +5,6 @@ tasks:
   build:
     cmds:
       - packr build -o dist/server
-
   run:
     deps: [build]
     dir: dist

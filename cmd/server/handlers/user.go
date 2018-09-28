@@ -10,6 +10,8 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/peerpx/peerpx/services/log"
+
 	"github.com/labstack/echo"
 	"github.com/peerpx/peerpx/cmd/server/context"
 	"github.com/peerpx/peerpx/entities/user"
@@ -106,10 +108,33 @@ func UserNewFollower(ac echo.Context) error {
 /////////////////////////////////////////////////////
 // API
 
+// UserUsernameIsAvailable checek if username if available
+func UserUsernameIsAvailable(ac echo.Context) error {
+	c := ac.(*context.AppContext)
+	response := NewApiResponse(c.UUID)
+
+	username := c.Param("username")
+	// should not happen
+	if username == "" {
+		return response.Error(c, http.StatusBadRequest, "usernameIsEmpty", "")
+	}
+	if _, err := user.GetByUsername(username); err != nil {
+		if err == sql.ErrNoRows {
+			return response.OK(c, http.StatusOK)
+		}
+		msg := fmt.Sprintf("%s - %s - handlers.UserUsernameIsAvailable - user.GetByUsername(%s) failed: %v", c.RealIP(), response.UUID, username, err)
+		return response.Error(c, http.StatusInternalServerError, "userGetByUsernameFail", msg)
+	}
+	// username exist
+	response.Code = "usernameNotAvailable"
+	log.Infof("response %v", response)
+	return response.KO(c, http.StatusOK)
+}
+
 type userCreateRequest struct {
 	Email    string
-	Username string
 	Password string
+	Username string
 }
 
 // UserCreate create a new user
@@ -130,6 +155,9 @@ func UserCreate(ac echo.Context) error {
 		msg := fmt.Sprintf("%s - %s - handlers.UserAdd - unmarshall request body failed: %v", c.RealIP(), response.UUID, err)
 		return response.Error(c, http.StatusBadRequest, "requestBodyNotValidJson", msg)
 	}
+
+	// check entries
+	// todo remove space from password &&
 
 	user, err := user.Create(requestData.Email, requestData.Username, requestData.Password)
 	if err != nil {

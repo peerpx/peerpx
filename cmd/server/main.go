@@ -137,7 +137,7 @@ func main() {
 	e.POST("/api/v1/user/logout", handlers.UserLogout)
 
 	// check if pseudo is available
-	e.GET("/api/v1/user/pseudo/:pseudo/is-available", handlers.Todo)
+	e.GET("/api/v1/user/:username/is-available", handlers.UserUsernameIsAvailable)
 
 	////
 	// photo

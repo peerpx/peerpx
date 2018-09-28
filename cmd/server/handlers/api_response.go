@@ -63,3 +63,9 @@ func (r *ApiResponse) OK(c *context.AppContext, httpStatus int) error {
 	r.Success = true
 	return r.Send(c, httpStatus, "", "")
 }
+
+// KO send a not OK response (no error but success == false)
+func (r *ApiResponse) KO(c *context.AppContext, httpStatus int) error {
+	r.Success = false
+	return r.Send(c, httpStatus, r.Code, r.Message)
+}

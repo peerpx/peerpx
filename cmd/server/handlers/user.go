@@ -10,8 +10,6 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/peerpx/peerpx/services/log"
-
 	"github.com/labstack/echo"
 	"github.com/peerpx/peerpx/cmd/server/context"
 	"github.com/peerpx/peerpx/entities/user"
@@ -114,6 +112,7 @@ func UserUsernameIsAvailable(ac echo.Context) error {
 	response := NewApiResponse(c.UUID)
 
 	username := c.Param("username")
+
 	// should not happen
 	if username == "" {
 		return response.Error(c, http.StatusBadRequest, "usernameIsEmpty", "")
@@ -127,7 +126,6 @@ func UserUsernameIsAvailable(ac echo.Context) error {
 	}
 	// username exist
 	response.Code = "usernameNotAvailable"
-	log.Infof("response %v", response)
 	return response.KO(c, http.StatusOK)
 }
 
@@ -158,6 +156,7 @@ func UserCreate(ac echo.Context) error {
 
 	// check entries
 	// todo remove space from password &&
+	// todo username must be alnum
 
 	user, err := user.Create(requestData.Email, requestData.Username, requestData.Password)
 	if err != nil {

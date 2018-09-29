@@ -30,6 +30,70 @@ func TestUserProfile(t *testing.T) {
 	}
 }
 
+func TestUserUsernameIsAvailable(t *testing.T) {
+	e := echo.New()
+	req := httptest.NewRequest(echo.GET, "/api/v1/user/username/is-available", nil)
+	rec := httptest.NewRecorder()
+
+	// no such user (is available)
+	c := context.NewMockedContext(e.NewContext(req, rec))
+	c.SetParamNames("username")
+	c.SetParamValues("available")
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(sql.ErrNoRows)
+	if assert.NoError(t, UserUsernameIsAvailable(c)) {
+		assert.Equal(t, http.StatusOK, rec.Code)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.True(t, response.Success)
+		}
+	}
+	// not available
+	rec = httptest.NewRecorder()
+	c = context.NewMockedContext(e.NewContext(req, rec))
+	c.SetParamNames("username")
+	c.SetParamValues("unavailable")
+	rows := sqlmock.NewRows([]string{"id", "username", "email", "password"}).AddRow(1, "john", "john@doe.com", "$2y$")
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnRows(rows)
+	if assert.NoError(t, UserUsernameIsAvailable(c)) {
+		assert.Equal(t, http.StatusOK, rec.Code)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.False(t, response.Success)
+		}
+	}
+
+	// sql error
+	rec = httptest.NewRecorder()
+	c = context.NewMockedContext(e.NewContext(req, rec))
+	c.SetParamNames("username")
+	c.SetParamValues("unavailable")
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(errors.New("BOUM!"))
+	if assert.NoError(t, UserUsernameIsAvailable(c)) {
+		assert.Equal(t, http.StatusInternalServerError, rec.Code)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.False(t, response.Success)
+			assert.Equal(t, "userGetByUsernameFail", response.Code)
+		}
+	}
+
+	// empty username
+
+	rec = httptest.NewRecorder()
+	c = context.NewMockedContext(e.NewContext(req, rec))
+	c.SetParamNames("username")
+	c.SetParamValues("")
+	if assert.NoError(t, UserUsernameIsAvailable(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+		response, err := ApiResponseFromBody(rec.Body)
+		if assert.NoError(t, err) {
+			assert.False(t, response.Success)
+			assert.Equal(t, "usernameIsEmpty", response.Code)
+		}
+	}
+
+}
+
 func TestUserCreate(t *testing.T) {
 	e := echo.New()
 	config.Set("usernameMaxLength", "5")

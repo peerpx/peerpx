@@ -118,6 +118,9 @@ func main() {
 	////
 	// API
 
+	// check if pseudo is available
+	e.GET("/api/v1/user/:username/is-available", handlers.UserUsernameIsAvailable)
+
 	// create user
 	e.POST("/api/v1/user", handlers.UserCreate)
 
@@ -135,9 +138,6 @@ func main() {
 
 	// logout
 	e.POST("/api/v1/user/logout", handlers.UserLogout)
-
-	// check if pseudo is available
-	e.GET("/api/v1/user/:username/is-available", handlers.UserUsernameIsAvailable)
 
 	////
 	// photo

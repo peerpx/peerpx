@@ -18,7 +18,7 @@ func AuthRequired() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(ac echo.Context) error {
 			c := ac.(*context.AppContext)
-			response := handlers.NewApiResponse(c.UUID)
+			response := handlers.NewAPIResponse(c)
 
 			// cookie
 			username, err := c.SessionGet("username")
@@ -33,10 +33,11 @@ func AuthRequired() echo.MiddlewareFunc {
 						c.LogInfof("middleware.AuthRequired - cookie is present but user %s is not found", username.(string))
 						// expire session
 						if err = c.SessionExpire(); err != nil {
-							msg := fmt.Sprintf("%s - %s - middleware.AuthRequired -  sessionExpire failed: %v", c.RealIP(), response.UUID, err)
-							return response.Error(c, http.StatusInternalServerError, "userMarshalFailed", msg)
+							response.Log = fmt.Sprintf("middleware.AuthRequired -  sessionExpire failed: %v", err)
+							response.Code = "userMarshalFailed"
+							return response.KO(http.StatusInternalServerError)
 						}
-						return response.OK(c, http.StatusForbidden)
+						return response.OK(http.StatusForbidden)
 					}
 					log.Errorf("%s - %s - middleware.AuthRequired - user.GetByUsername(%s) failed: %v", c.RealIP(), c.UUID, username.(string), err)
 					return err

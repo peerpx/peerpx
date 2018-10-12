@@ -10,6 +10,8 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/peerpx/peerpx/services/log"
+
 	"github.com/labstack/echo"
 	"github.com/peerpx/peerpx/cmd/server/context"
 	"github.com/peerpx/peerpx/entities/user"
@@ -109,49 +111,53 @@ func UserNewFollower(ac echo.Context) error {
 // UserUsernameIsAvailable checek if username if available
 func UserUsernameIsAvailable(ac echo.Context) error {
 	c := ac.(*context.AppContext)
-	response := NewApiResponse(c.UUID)
+	response := NewAPIResponse(c)
 
 	username := c.Param("username")
 
 	// should not happen
 	if username == "" {
-		return response.Error(c, http.StatusBadRequest, "usernameIsEmpty", "")
+		response.Code = "usernameIsEmpty"
+		return response.KO(http.StatusBadRequest)
 	}
+
 	if _, err := user.GetByUsername(username); err != nil {
 		if err == sql.ErrNoRows {
-			return response.OK(c, http.StatusOK)
+			return response.OK(http.StatusOK)
 		}
-		msg := fmt.Sprintf("%s - %s - handlers.UserUsernameIsAvailable - user.GetByUsername(%s) failed: %v", c.RealIP(), response.UUID, username, err)
-		return response.Error(c, http.StatusInternalServerError, "userGetByUsernameFail", msg)
+		response.Log = fmt.Sprintf("handlers.UserUsernameIsAvailable - user.GetByUsername(%s) failed: %v", username, err)
+		response.Code = "userGetByUsernameFail"
+		return response.KO(http.StatusInternalServerError)
 	}
 	// username exist
 	response.Code = "usernameNotAvailable"
-	return response.KO(c, http.StatusOK)
-}
-
-type userCreateRequest struct {
-	Email    string
-	Password string
-	Username string
+	return response.KO(http.StatusOK)
 }
 
 // UserCreate create a new user
 func UserCreate(ac echo.Context) error {
 	c := ac.(*context.AppContext)
-	response := NewApiResponse(c.UUID)
+	response := NewAPIResponse(c)
 
 	// get body
 	body, err := ioutil.ReadAll(c.Request().Body)
 	if err != nil {
-		msg := fmt.Sprintf("%s - %s - handlers.UserCreate - failed to read request body: %v", c.RealIP(), response.UUID, err)
-		return response.Error(c, http.StatusBadRequest, "requestBodyNotReadable", msg)
+		response.Log = fmt.Sprintf("handlers.UserCreate - failed to read request body: %v", err)
+		response.Code = "requestBodyNotReadable"
+		return response.KO(http.StatusBadRequest)
 
 	}
 	// unmarshal
-	requestData := new(userCreateRequest)
-	if err = json.Unmarshal(body, requestData); err != nil {
-		msg := fmt.Sprintf("%s - %s - handlers.UserAdd - unmarshall request body failed: %v", c.RealIP(), response.UUID, err)
-		return response.Error(c, http.StatusBadRequest, "requestBodyNotValidJson", msg)
+	requestData := struct {
+		Email    string
+		Password string
+		Username string
+	}{}
+
+	if err = json.Unmarshal(body, &requestData); err != nil {
+		response.Log = fmt.Sprintf("handlers.UserAdd - unmarshall request body failed: %v", err)
+		response.Code = "requestBodyNotValidJson"
+		return response.KO(http.StatusBadRequest)
 	}
 
 	// check entries
@@ -160,29 +166,34 @@ func UserCreate(ac echo.Context) error {
 
 	user, err := user.Create(requestData.Email, requestData.Username, requestData.Password)
 	if err != nil {
-		msg := fmt.Sprintf("%s - %s - handlers.UserAdd - user.Create() failed: %v", c.RealIP(), response.UUID, err)
-		return response.Error(c, http.StatusInternalServerError, "userCreateFailed", msg)
+		response.Log = fmt.Sprintf("handlers.UserAdd - user.Create() failed: %v", err)
+		response.Code = "userCreateFailed"
+		return response.KO(http.StatusInternalServerError)
 	}
 
+	// todo set username in session
+	// todo pas besoin de retourner l'user
 	response.Data, err = json.Marshal(user)
 	if err != nil {
-		msg := fmt.Sprintf("%s - %s - handlers.UserAdd - activitypub.Marshal(user) failed: %v", c.RealIP(), response.UUID, err)
-		return response.Error(c, http.StatusInternalServerError, "userMarshalFailed", msg)
+		response.Log = fmt.Sprintf("handlers.UserAdd - activitypub.Marshal(user) failed: %v", err)
+		response.Code = "userMarshalFailed"
+		return response.KO(http.StatusInternalServerError)
 	}
 
-	c.LogInfof("%s - %s - handlers.UserAdd - new user created: %s %s", c.RealIP(), response.UUID, user.Username, user.Email)
-	return response.OK(c, http.StatusCreated)
+	response.Log = fmt.Sprintf("handlers.UserAdd - new user created: %s %s", user.Username, user.Email)
+	return response.OK(http.StatusCreated)
 }
 
 // UserLogin used to login
 func UserLogin(ac echo.Context) error {
 	c := ac.(*context.AppContext)
-	response := NewApiResponse(c.UUID)
+	response := NewAPIResponse(c)
 
 	body, err := ioutil.ReadAll(c.Request().Body)
 	if err != nil {
-		msg := fmt.Sprintf("%s - %s - handlers.UserLogin - unable to read request body: %v", c.RealIP(), response.UUID, err)
-		return response.Error(c, http.StatusBadRequest, "requestBodyNotReadable", msg)
+		response.Log = fmt.Sprintf("handlers.UserLogin - unable to read request body: %v", err)
+		response.Code = "requestBodyNotReadable"
+		return response.KO(http.StatusBadRequest)
 	}
 
 	// unmarshall
@@ -192,67 +203,109 @@ func UserLogin(ac echo.Context) error {
 	}{}
 
 	if err = json.Unmarshal(body, &data); err != nil {
-		msg := fmt.Sprintf("%s - %s - handlers.UserLogin - unable to unmarshall request body: %v", c.RealIP(), response.UUID, err)
-		return response.Error(c, http.StatusBadRequest, "requestBodyNotValidJson", msg)
+		response.Log = fmt.Sprintf("handlers.UserLogin - unable to unmarshall request body: %v", err)
+		response.Code = "requestBodyNotValidJson"
+		return response.KO(http.StatusBadRequest)
 	}
 
 	u, err := user.Login(data.Login, data.Password)
 	if err != nil {
 		if err == user.ErrNoSuchUser {
-			msg := fmt.Sprintf("%s - %s - handlers.UserLogin - no such user %s", c.RealIP(), response.UUID, data.Login)
-			return response.Error(c, http.StatusNotFound, "noSuchUser", msg)
+			response.Log = fmt.Sprintf("handlers.UserLogin - no such user %s", data.Login)
+			response.Code = "noSuchUser"
+			return response.KO(http.StatusNotFound)
 		}
-		msg := fmt.Sprintf("%s - %s - handlers.UserLogin - unable to login: %v", c.RealIP(), response.UUID, err)
-		return response.Error(c, http.StatusInternalServerError, "userLoginFailed", msg)
+		response.Log = fmt.Sprintf("handlers.UserLogin - unable to login: %v", err)
+		response.Code = "userLoginFailed"
+		return response.KO(http.StatusInternalServerError)
 	}
 
 	// set user in session
 	if err = c.SessionSet("username", u.Username); err != nil {
-		msg := fmt.Sprintf("%s - %s - handlers.UserLogin - c.SessionSet(username, %s) failed: %v", c.Request().RemoteAddr, response.UUID, u.Username, err)
-		return response.Error(c, http.StatusInternalServerError, "sessionSetFailed", msg)
+		response.Log = fmt.Sprintf("handlers.UserLogin - c.SessionSet(username, %s) failed: %v", u.Username, err)
+		response.Code = "sessionSetFailed"
+		return response.KO(http.StatusInternalServerError)
 	}
 
 	response.Data, err = json.Marshal(u)
 	if err != nil {
-		msg := fmt.Sprintf("%s - %s - handlers.UserLogin - activitypub.Marshal(user) failed: %v", c.RealIP(), response.UUID, err)
-		return response.Error(c, http.StatusInternalServerError, "userMarshalFailed", msg)
+		response.Log = fmt.Sprintf("handlers.UserLogin - json.Marshal(user) failed: %v", err)
+		response.Code = "userMarshalFailed"
+		return response.KO(http.StatusInternalServerError)
 	}
-	c.LogInfof("%s - %s - successful login: %s %s", c.RealIP(), response.UUID, u.Username, u.Email)
-
-	return response.OK(c, http.StatusOK)
+	response.Log = fmt.Sprintf("successful login: %s %s", u.Username, u.Email)
+	return response.OK(http.StatusOK)
 }
 
 // UserLogout log out an user
 func UserLogout(ac echo.Context) error {
 	c := ac.(*context.AppContext)
-	response := NewApiResponse(c.UUID)
+	response := NewAPIResponse(c)
 
 	// expire session
 	if err := c.SessionExpire(); err != nil {
-		msg := fmt.Sprintf("%s - %s - handlers.UserLogout - sessionExpire failed : %v", c.RealIP(), response.UUID, err)
-		return response.Error(c, http.StatusInternalServerError, "sessionExpireFailed", msg)
+		response.Log = fmt.Sprintf("handlers.UserLogout - sessionExpire failed : %v", err)
+		response.Code = "sessionExpireFailed"
+		return response.KO(http.StatusInternalServerError)
 	}
+	return response.OK(http.StatusOK)
+}
 
-	return response.OK(c, http.StatusOK)
+// UserPasswordLost utilities to recover password
+// GET -> send an email with an auth link
+// POST -> reset password
+func UserPasswordLost(ac echo.Context) error {
+	c := ac.(*context.AppContext)
+	response := NewAPIResponse(c)
+
+	// GET or POST
+	switch c.Request().Method {
+	case echo.GET:
+		// check if user exists
+		userEmail := strings.ToLower(c.Param("email"))
+		// should not happen
+		if userEmail == "" {
+			response.Code = "paramEmpty"
+			return response.KO(http.StatusBadRequest)
+		}
+
+		user, err := user.GetByEmail(userEmail)
+		if err != nil {
+			response.Log = fmt.Sprintf("handlers.UserPasswordLost - user.GetByEmail(%s) fail: %v", userEmail, err)
+			response.Code = "userMarshalFailed"
+			return response.KO(http.StatusInternalServerError)
+		}
+		_ = user
+
+	case echo.POST:
+		log.Info("UserPasswordLost: On a un post -> todo")
+	default:
+		response.Message = "bad HTTP method"
+		response.Code = "badHTTPMethod"
+		return response.KO(http.StatusBadRequest)
+	}
+	return response.OK(http.StatusOK)
 }
 
 // UserMe return user (auth needed)
 func UserMe(ac echo.Context) error {
 	c := ac.(*context.AppContext)
-	response := NewApiResponse(c.UUID)
+	response := NewAPIResponse(c)
 
 	user := c.Get("u")
 	if user == nil {
-		msg := fmt.Sprintf("%s - %s - handlers.UserMe - c.Get(u) return empty string.", c.RealIP(), response.UUID)
-		return response.Error(c, http.StatusUnauthorized, "userNotInContext", msg)
+		response.Log = "handlers.UserMe - c.Get(u) return empty string."
+		response.Code = "userNotInContext"
+		return response.KO(http.StatusUnauthorized)
 	}
 	var err error
 	response.Data, err = json.Marshal(user)
 	if err != nil {
-		msg := fmt.Sprintf("%s - %s - handlers.UserMe - activitypub.Marshal(user) failed: %v", c.RealIP(), response.UUID, err)
-		return response.Error(c, http.StatusInternalServerError, "userMarshalFailed", msg)
+		response.Log = fmt.Sprintf("handlers.UserMe - json.Marshal(user) failed: %v", err)
+		response.Code = "userMarshalFailed"
+		return response.KO(http.StatusInternalServerError)
 	}
-	return response.OK(c, http.StatusOK)
+	return response.OK(http.StatusOK)
 }
 
 // a re-utiliser pour le PUT

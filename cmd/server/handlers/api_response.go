@@ -10,62 +10,61 @@ import (
 	"github.com/peerpx/peerpx/services/log"
 )
 
-// ApiResponse is the response returned by PeerPx API
-type ApiResponse struct {
+// APIResponse is the response returned by PeerPx API
+type APIResponse struct {
+	context    *context.AppContext
+	clientIP   string
 	UUID       string          `json:"uuid"`
 	Timestamp  time.Time       `json:"timestamp"`
-	HttpStatus int             `json:"http_status"`
+	HTTPStatus int             `json:"http_status"`
 	Code       string          `json:"code"`
 	Success    bool            `json:"success"`
-	Message    string          `json:"message"`
+	Message    string          `json:"message"` // message to user
+	Log        string          `json:"-"`
 	Data       json.RawMessage `json:"data,omitempty"`
 }
 
-// NewApiResponse return an instantiated API response
-// panic if uuid.NewV4() failed (should never happen)
-func NewApiResponse(uuid string) *ApiResponse {
-	return &ApiResponse{
+// NewAPIResponse return an instantiated API response
+func NewAPIResponse(c *context.AppContext) *APIResponse {
+	return &APIResponse{
+		context:    c,
+		UUID:       c.UUID,
 		Timestamp:  time.Now(),
-		UUID:       uuid,
-		HttpStatus: http.StatusOK,
+		HTTPStatus: http.StatusOK,
 		Data:       nil,
 	}
 }
 
-// ApiResponseFromBody unmarshall api response from http response body
+// APIResponseFromBody unmarshall api response from http response body
 // mainly used for tests
-func ApiResponseFromBody(body *bytes.Buffer) (ApiResponse, error) {
-	var response ApiResponse
+func APIResponseFromBody(body *bytes.Buffer) (APIResponse, error) {
+	var response APIResponse
 	err := json.Unmarshal(body.Bytes(), &response)
 	return response, err
 }
 
 // Send send a reply
-func (r *ApiResponse) Send(c *context.AppContext, httpStatus int, code, message string) error {
+func (r *APIResponse) Send() error {
 	r.Timestamp = time.Now()
-	r.HttpStatus = httpStatus
-	r.Message = message
-	r.Code = code
-	return c.JSON(httpStatus, r)
-}
-
-// Error send an error reply
-func (r *ApiResponse) Error(c *context.AppContext, httpStatus int, code, message string) error {
-	r.Success = false
-	if message != "" {
-		log.Error(message)
-	}
-	return r.Send(c, httpStatus, code, message)
+	return r.context.JSON(r.HTTPStatus, r)
 }
 
 // OK send an OK response
-func (r *ApiResponse) OK(c *context.AppContext, httpStatus int) error {
+func (r *APIResponse) OK(HTTPStatus int) error {
 	r.Success = true
-	return r.Send(c, httpStatus, "", "")
+	r.HTTPStatus = HTTPStatus
+	if r.Log != "" {
+		log.Infof("%s - %s - %s", r.context.RealIP(), r.UUID, r.Log)
+	}
+	return r.Send()
 }
 
 // KO send a not OK response (no error but success == false)
-func (r *ApiResponse) KO(c *context.AppContext, httpStatus int) error {
+func (r *APIResponse) KO(HTTPStatus int) error {
 	r.Success = false
-	return r.Send(c, httpStatus, r.Code, r.Message)
+	r.HTTPStatus = HTTPStatus
+	if r.Log != "" {
+		log.Errorf("%s - %s - %s", r.clientIP, r.UUID, r.Log)
+	}
+	return r.Send()
 }

@@ -139,6 +139,9 @@ func main() {
 	// logout
 	e.POST("/api/v1/user/logout", handlers.UserLogout)
 
+	// password lost
+	e.GET("/api/v1/user/password-lost/:email", handlers.UserPasswordLost)
+
 	////
 	// photo
 

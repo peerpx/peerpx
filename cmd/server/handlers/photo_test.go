@@ -2,21 +2,16 @@ package handlers
 
 import (
 	"bytes"
+	"database/sql"
+	"encoding/json"
+	"errors"
+	"io"
 	"mime/multipart"
+	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
-
-	"net/http"
-
-	"io"
-	"os"
-
-	"encoding/json"
-
-	"errors"
-
-	"database/sql"
 
 	"github.com/labstack/echo"
 	"github.com/peerpx/peerpx/cmd/server/context"
@@ -47,7 +42,7 @@ func TestPhotoCreate(t *testing.T) {
 	c := context.NewMockedContext(e.NewContext(req, rec))
 	if assert.NoError(t, PhotoCreate(c)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.False(t, response.Success)
 			assert.Equal(t, "reqNotMultipart", response.Code)
@@ -67,7 +62,7 @@ func TestPhotoCreate(t *testing.T) {
 	c = context.NewMockedContext(e.NewContext(req, rec))
 	if assert.NoError(t, PhotoCreate(c)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.False(t, response.Success)
 			assert.Equal(t, "reqBadMultipartProperties", response.Code)
@@ -87,7 +82,7 @@ func TestPhotoCreate(t *testing.T) {
 	c = context.NewMockedContext(e.NewContext(req, rec))
 	if assert.NoError(t, PhotoCreate(c)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.False(t, response.Success)
 			assert.Equal(t, "reqBadPhotoProperties", response.Code)
@@ -106,7 +101,7 @@ func TestPhotoCreate(t *testing.T) {
 	c = context.NewMockedContext(e.NewContext(req, rec))
 	if assert.NoError(t, PhotoCreate(c)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.False(t, response.Success)
 			assert.Equal(t, "reqBadMultipartFile", response.Code)
@@ -131,7 +126,7 @@ func TestPhotoCreate(t *testing.T) {
 	c = context.NewMockedContext(e.NewContext(req, rec))
 	if assert.NoError(t, PhotoCreate(c)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.False(t, response.Success)
 			assert.Equal(t, "unsupportedPhotoFormat", response.Code)
@@ -157,7 +152,7 @@ func TestPhotoCreate(t *testing.T) {
 	datastore.InitMokedDatastore([]byte{}, errors.New("mocked"))
 	if assert.NoError(t, PhotoCreate(c)) {
 		assert.Equal(t, http.StatusUnauthorized, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.False(t, response.Success)
 			assert.Equal(t, "userNotInContext", response.Code)
@@ -186,7 +181,7 @@ func TestPhotoCreate(t *testing.T) {
 	datastore.InitMokedDatastore([]byte{}, errors.New("mocked"))
 	if assert.NoError(t, PhotoCreate(c)) {
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.False(t, response.Success)
 			assert.Equal(t, "datastoreFailed", response.Code)
@@ -216,7 +211,7 @@ func TestPhotoCreate(t *testing.T) {
 		WillReturnError(errors.New("mocked"))
 	if assert.NoError(t, PhotoCreate(c)) {
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.False(t, response.Success)
 			assert.Equal(t, "dbCreateFailed", response.Code)
@@ -247,7 +242,7 @@ func TestPhotoCreate(t *testing.T) {
 		WillReturnError(errors.New("UNIQUE CONSTRAINT blabla"))
 	if assert.NoError(t, PhotoCreate(c)) {
 		assert.Equal(t, http.StatusConflict, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.False(t, response.Success)
 			assert.Equal(t, "duplicate", response.Code)
@@ -278,7 +273,7 @@ func TestPhotoCreate(t *testing.T) {
 		WillReturnResult(sqlmock.NewResult(1, 1))
 	if assert.NoError(t, PhotoCreate(c)) {
 		assert.Equal(t, http.StatusCreated, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.True(t, response.Success)
 			// unmashall photo
@@ -302,7 +297,7 @@ func TestPhotoGetProperties(t *testing.T) {
 	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(errors.New("mocked"))
 	if assert.NoError(t, PhotoGetProperties(c)) {
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.False(t, response.Success)
 			assert.Equal(t, "getByHashFailed", response.Code)
@@ -315,7 +310,7 @@ func TestPhotoGetProperties(t *testing.T) {
 	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(sql.ErrNoRows)
 	if assert.NoError(t, PhotoGetProperties(c)) {
 		assert.Equal(t, http.StatusNotFound, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.False(t, response.Success)
 			assert.Equal(t, "notFound", response.Code)
@@ -329,7 +324,7 @@ func TestPhotoGetProperties(t *testing.T) {
 	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnRows(row)
 	if assert.NoError(t, PhotoGetProperties(c)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.True(t, response.Success)
 			p := new(photo.Photo)
@@ -381,7 +376,7 @@ func TestPhotoPut(t *testing.T) {
 
 	if assert.NoError(t, PhotoPut(c)) {
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.Equal(t, "readBodyFailed", response.Code)
 		}
@@ -394,7 +389,7 @@ func TestPhotoPut(t *testing.T) {
 
 	if assert.NoError(t, PhotoPut(c)) {
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.Equal(t, "unmarshallBodyFailed", response.Code)
 		}
@@ -408,7 +403,7 @@ func TestPhotoPut(t *testing.T) {
 
 	if assert.NoError(t, PhotoPut(c)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.Equal(t, "errValidationFailed_6", response.Code)
 		}
@@ -423,7 +418,7 @@ func TestPhotoPut(t *testing.T) {
 
 	if assert.NoError(t, PhotoPut(c)) {
 		assert.Equal(t, http.StatusNotFound, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.Equal(t, "errNotFound", response.Code)
 		}
@@ -439,7 +434,7 @@ func TestPhotoPut(t *testing.T) {
 
 	if assert.NoError(t, PhotoPut(c)) {
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.Equal(t, "photoByHashFailed", response.Code)
 		}
@@ -457,7 +452,7 @@ func TestPhotoPut(t *testing.T) {
 
 	if assert.NoError(t, PhotoPut(c)) {
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.Equal(t, "photoUpdateFailed", response.Code)
 		}
@@ -476,7 +471,7 @@ func TestPhotoDel(t *testing.T) {
 		ExpectExec().WillReturnError(sql.ErrNoRows)
 	if assert.NoError(t, PhotoDel(c)) {
 		assert.Equal(t, http.StatusNotFound, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.Equal(t, "notFound", response.Code)
 		}
@@ -489,7 +484,7 @@ func TestPhotoDel(t *testing.T) {
 		ExpectExec().WillReturnError(errors.New("mocked"))
 	if assert.NoError(t, PhotoDel(c)) {
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.Equal(t, "photoDeleteByHashFailed", response.Code)
 		}
@@ -506,7 +501,7 @@ func TestPhotoDel(t *testing.T) {
 
 	if assert.NoError(t, PhotoDel(c)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.True(t, response.Success)
 		}

@@ -42,7 +42,7 @@ func TestUserUsernameIsAvailable(t *testing.T) {
 	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(sql.ErrNoRows)
 	if assert.NoError(t, UserUsernameIsAvailable(c)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.True(t, response.Success)
 		}
@@ -56,7 +56,7 @@ func TestUserUsernameIsAvailable(t *testing.T) {
 	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnRows(rows)
 	if assert.NoError(t, UserUsernameIsAvailable(c)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.False(t, response.Success)
 		}
@@ -67,10 +67,10 @@ func TestUserUsernameIsAvailable(t *testing.T) {
 	c = context.NewMockedContext(e.NewContext(req, rec))
 	c.SetParamNames("username")
 	c.SetParamValues("unavailable")
-	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(errors.New("BOUM!"))
+	db.Mock.ExpectQuery("^SELECT(.*)").WillReturnError(errors.New("boum!"))
 	if assert.NoError(t, UserUsernameIsAvailable(c)) {
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.False(t, response.Success)
 			assert.Equal(t, "userGetByUsernameFail", response.Code)
@@ -85,7 +85,7 @@ func TestUserUsernameIsAvailable(t *testing.T) {
 	c.SetParamValues("")
 	if assert.NoError(t, UserUsernameIsAvailable(c)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.False(t, response.Success)
 			assert.Equal(t, "usernameIsEmpty", response.Code)
@@ -105,7 +105,7 @@ func TestUserCreate(t *testing.T) {
 	c := context.NewMockedContext(e.NewContext(req, rec))
 	if assert.NoError(t, UserCreate(c)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.False(t, response.Success)
 			assert.Nil(t, response.Data)
@@ -119,7 +119,7 @@ func TestUserCreate(t *testing.T) {
 	c = context.NewMockedContext(e.NewContext(req, rec))
 	if assert.NoError(t, UserCreate(c)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.False(t, response.Success)
 			assert.Nil(t, response.Data)
@@ -134,12 +134,11 @@ func TestUserCreate(t *testing.T) {
 	c = context.NewMockedContext(e.NewContext(req, rec))
 	if assert.NoError(t, UserCreate(c)) {
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.False(t, response.Success)
 			assert.Nil(t, response.Data)
 			assert.Equal(t, "userCreateFailed", response.Code)
-			assert.True(t, strings.HasSuffix(response.Message, "barfoo.com is not a valid email"))
 		}
 	}
 
@@ -155,7 +154,7 @@ func TestUserCreate(t *testing.T) {
 	c = context.NewMockedContext(e.NewContext(req, rec))
 	if assert.NoError(t, UserCreate(c)) {
 		assert.Equal(t, http.StatusCreated, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.True(t, response.Success)
 			assert.NotNil(t, response.Data)
@@ -177,7 +176,7 @@ func TestUserLogin(t *testing.T) {
 
 	if assert.NoError(t, UserLogin(c)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.Nil(t, response.Data)
 			assert.False(t, response.Success)
@@ -191,7 +190,7 @@ func TestUserLogin(t *testing.T) {
 	c = context.NewMockedContext(e.NewContext(req, rec))
 	if assert.NoError(t, UserLogin(c)) {
 		assert.Equal(t, http.StatusBadRequest, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.Nil(t, response.Data)
 			assert.False(t, response.Success)
@@ -208,7 +207,7 @@ func TestUserLogin(t *testing.T) {
 
 	if assert.NoError(t, UserLogin(c)) {
 		assert.Equal(t, http.StatusNotFound, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.False(t, response.Success)
 			assert.Nil(t, response.Data)
@@ -225,7 +224,7 @@ func TestUserLogin(t *testing.T) {
 
 	if assert.NoError(t, UserLogin(c)) {
 		assert.Equal(t, http.StatusInternalServerError, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.False(t, response.Success)
 			assert.Nil(t, response.Data)
@@ -243,7 +242,7 @@ func TestUserLogin(t *testing.T) {
 
 	if assert.NoError(t, UserLogin(c)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.True(t, response.Success)
 			if assert.NotNil(t, response.Data) {
@@ -281,7 +280,7 @@ func TestUserMe(t *testing.T) {
 	// user not authenticated (should not happen)
 	if assert.NoError(t, UserMe(c)) {
 		assert.Equal(t, http.StatusUnauthorized, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.False(t, response.Success)
 			assert.Equal(t, "userNotInContext", response.Code)
@@ -297,7 +296,7 @@ func TestUserMe(t *testing.T) {
 	c.Set("u", *u)
 	if assert.NoError(t, UserMe(c)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
-		response, err := ApiResponseFromBody(rec.Body)
+		response, err := APIResponseFromBody(rec.Body)
 		if assert.NoError(t, err) {
 			assert.True(t, response.Success)
 			u = new(user.User)

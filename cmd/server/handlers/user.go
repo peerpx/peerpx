@@ -174,11 +174,6 @@ func UserCreate(ac echo.Context) error {
 	return response.OK(c, http.StatusCreated)
 }
 
-type userLoginRequest struct {
-	Login    string `activitypub:"login"`
-	Password string `activitypub:"password"`
-}
-
 // UserLogin used to login
 func UserLogin(ac echo.Context) error {
 	c := ac.(*context.AppContext)
@@ -191,16 +186,20 @@ func UserLogin(ac echo.Context) error {
 	}
 
 	// unmarshall
-	requestData := new(userLoginRequest)
-	if err = json.Unmarshal(body, requestData); err != nil {
+	data := struct {
+		Login    string `activitypub:"login"`
+		Password string `activitypub:"password"`
+	}{}
+
+	if err = json.Unmarshal(body, &data); err != nil {
 		msg := fmt.Sprintf("%s - %s - handlers.UserLogin - unable to unmarshall request body: %v", c.RealIP(), response.UUID, err)
 		return response.Error(c, http.StatusBadRequest, "requestBodyNotValidJson", msg)
 	}
 
-	u, err := user.Login(requestData.Login, requestData.Password)
+	u, err := user.Login(data.Login, data.Password)
 	if err != nil {
 		if err == user.ErrNoSuchUser {
-			msg := fmt.Sprintf("%s - %s - handlers.UserLogin - no such user %s", c.RealIP(), response.UUID, requestData.Login)
+			msg := fmt.Sprintf("%s - %s - handlers.UserLogin - no such user %s", c.RealIP(), response.UUID, data.Login)
 			return response.Error(c, http.StatusNotFound, "noSuchUser", msg)
 		}
 		msg := fmt.Sprintf("%s - %s - handlers.UserLogin - unable to login: %v", c.RealIP(), response.UUID, err)

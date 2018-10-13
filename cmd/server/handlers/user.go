@@ -10,7 +10,7 @@ import (
 	"strings"
 	"text/template"
 
-	"github.com/peerpx/peerpx/services/log"
+	"github.com/gofrs/uuid"
 
 	"github.com/labstack/echo"
 	"github.com/peerpx/peerpx/cmd/server/context"
@@ -260,6 +260,7 @@ func UserPasswordLost(ac echo.Context) error {
 
 	// GET or POST
 	switch c.Request().Method {
+	// ask for resetting password -> email with authlink
 	case echo.GET:
 		// check if user exists
 		userEmail := strings.ToLower(c.Param("email"))
@@ -268,17 +269,51 @@ func UserPasswordLost(ac echo.Context) error {
 			response.Code = "paramEmpty"
 			return response.KO(http.StatusBadRequest)
 		}
-
-		user, err := user.GetByEmail(userEmail)
+		u, err := user.GetByEmail(userEmail)
 		if err != nil {
+			if err == sql.ErrNoRows {
+				c.LogInfof("handlers.UserPasswordLost - no such user: %s", userEmail)
+				response.Code = "noSuchUser"
+				// todo throttle ?
+				return response.KO(http.StatusNotFound)
+			}
 			response.Log = fmt.Sprintf("handlers.UserPasswordLost - user.GetByEmail(%s) fail: %v", userEmail, err)
 			response.Code = "userMarshalFailed"
 			return response.KO(http.StatusInternalServerError)
 		}
-		_ = user
+
+		// generate UUID
+		uid, err := uuid.NewV4()
+		if err != nil {
+			response.Log = fmt.Sprintf("handlers.UserPasswordLost - uuid.NewV4() fail: %v", err)
+			return response.KO(http.StatusInternalServerError)
+		}
+
+		u.AuthUUID.String = uid.String()
+		if err = u.Update(); err != nil {
+			response.Log = fmt.Sprintf("handlers.UserPasswordLost - user.Update() fail: %v", err)
+			response.Code = "userUpdateFail"
+			return response.KO(http.StatusInternalServerError)
+		}
+
+		authLink := fmt.Sprintf("%s/login/%s", config.GetString("ui.baseurl"), uid)
+
+		// todo real template with i18n support
+		mailBody := fmt.Sprintf(`Hi
+
+To reset your password click on the link below:
+%s		
+
+`, authLink)
+
+		c.LogInfof("MAILBODY: %s", mailBody)
+
+		// send mail
+
+		_ = u
 
 	case echo.POST:
-		log.Info("UserPasswordLost: On a un post -> todo")
+		c.LogInfo("UserPasswordLost: On a un post -> todo")
 	default:
 		response.Message = "bad HTTP method"
 		response.Code = "badHTTPMethod"

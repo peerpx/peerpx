@@ -8,6 +8,8 @@ import (
 	"strings"
 	"unicode/utf8"
 
+	"github.com/gofrs/uuid"
+
 	"github.com/peerpx/peerpx/pkg/cryptobox"
 
 	"github.com/peerpx/peerpx/services/config"
@@ -37,6 +39,7 @@ type User struct {
 	AvatarURL  string         `db:"avatar_url" json:"avatar_url"`
 	PublicKey  sql.NullString `db:"public_key" json:"public_key"`
 	PrivateKey sql.NullString `db:"private_key" json:"-"`
+	AuthUUID   sql.NullString `db:"authuuid" json:"-"`
 }
 
 // Gender is the user gender
@@ -107,6 +110,14 @@ func Create(email, username, clearPassword string) (user *User, err error) {
 	if err = user.Create(); err != nil {
 		return nil, fmt.Errorf("unable to record new user in database: %v", err)
 	}
+
+	// AuthUUID
+	uid, err := uuid.NewV4()
+	if err != nil {
+		return nil, fmt.Errorf("uuid.NewV4() fail: %v", err)
+	}
+	user.AuthUUID.String = uid.String()
+
 	return user, nil
 }
 
@@ -186,11 +197,11 @@ func (u *User) Update() error {
 	if u.ID == 0 {
 		return errors.New("user unknown in database")
 	}
-	stmt, err := db.Preparex("UPDATE users SET username = ?, firstname = ?, lastname = ?, gender = ?, email = ?, address = ?, city = ?, state  = ?, zip = ?, country = ?, about = ?, locale = ?, show_nsfw = ?, user_url = ?, admin = ?, avatar_url = ?, password = ? public_key = ?, private_key = ? WHERE id = ?")
+	stmt, err := db.Preparex("UPDATE users SET username = ?, firstname = ?, lastname = ?, gender = ?, email = ?, address = ?, city = ?, state  = ?, zip = ?, country = ?, about = ?, locale = ?, show_nsfw = ?, user_url = ?, admin = ?, avatar_url = ?, password = ?, public_key = ?, private_key = ?, authuuid = ? WHERE id = ?")
 	if err != nil {
 		return err
 	}
-	res, err := stmt.Exec(u.Username, u.Firstname, u.Lastname, u.Gender, u.Email, u.Address, u.City, u.State, u.Zip, u.Country, u.About, u.Locale, u.ShowNsfw, u.UserURL, u.Admin, u.AvatarURL, u.Password, u.PublicKey.String, u.PrivateKey.String, u.ID)
+	res, err := stmt.Exec(u.Username, u.Firstname, u.Lastname, u.Gender, u.Email, u.Address, u.City, u.State, u.Zip, u.Country, u.About, u.Locale, u.ShowNsfw, u.UserURL, u.Admin, u.AvatarURL, u.Password, u.PublicKey.String, u.PrivateKey.String, u.AuthUUID.String, u.ID)
 	if err != nil {
 		return err
 	}

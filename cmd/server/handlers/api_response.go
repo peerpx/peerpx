@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/peerpx/peerpx/cmd/server/context"
-	"github.com/peerpx/peerpx/services/log"
 )
 
 // APIResponse is the response returned by PeerPx API
@@ -54,7 +53,7 @@ func (r *APIResponse) OK(HTTPStatus int) error {
 	r.Success = true
 	r.HTTPStatus = HTTPStatus
 	if r.Log != "" {
-		log.Infof("%s - %s - %s", r.context.RealIP(), r.UUID, r.Log)
+		r.context.LogInfo(r.Log)
 	}
 	return r.Send()
 }
@@ -64,7 +63,7 @@ func (r *APIResponse) KO(HTTPStatus int) error {
 	r.Success = false
 	r.HTTPStatus = HTTPStatus
 	if r.Log != "" {
-		log.Errorf("%s - %s - %s", r.clientIP, r.UUID, r.Log)
+		r.context.LogError(r.Log)
 	}
 	return r.Send()
 }
